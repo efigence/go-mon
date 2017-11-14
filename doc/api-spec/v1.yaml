@@ -1,0 +1,99 @@
+swagger: '2.0'
+info:
+  description: >-
+    Monitoring/metrics API
+    [docs](https://wiki.efigence.com/doku.php/architektura:monitoring)
+  version: 0.0.1
+  title: Monitoring/metrics API
+  contact:
+    email: admin@efigence.com
+basePath: /_status
+tags:
+  - name: health
+    description: Service Health
+    externalDocs:
+      description: Find out more
+      url: 'https://wiki.efigence.com/doku.php/architektura:monitoring'
+schemes:
+  - http
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Healthcheck
+      description: Return service health
+      operationId: healthcheck
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: service ok/warning
+          schema:
+            $ref: '#/definitions/status'
+        '500':
+          description: service critical
+          schema:
+            $ref: '#/definitions/status'
+definitions:
+  status:
+    type: object
+    properties:
+      ts:
+        type: string
+        format: date-time
+        description: timestamp of last status update
+      fqdn:
+        type: string
+        description: FQDN of machine running application
+        default: $local-machine.fqdn
+      component:
+        type: string
+        description: name of application's component. Optional
+        default: main
+      status:
+        type: integer
+        format: uint8
+        enum:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+        description: >
+          current status(nagios-compatible)
+
+
+          * 0 is invalid monitoring data
+
+          * 1 for OK
+
+          * 2 for warning - "works but might soon fail" status, like queues are
+          getting full, or it is running out of disk space
+
+          * 3 for critical - note that service should also return HTTP 500 when
+          it is critical, for use with loadbalancers
+
+          * 4 for unknown (service did not finish initializing) - will also be
+          set if check is stale
+      msg:
+        type: string
+        description: 'error description if there is any, else "OK"'
+      version:
+        type: string
+        description: >
+          currently running code version, preferably in version-short_commit
+          format.
+
+          If repo uses version tags `git describe --tags --long --always
+          --dirty` should make sensible one
+      parts:
+        type: object
+        description: >-
+          Sub-components of the aplication, in same format, with component name
+          as key
+        additionalProperties:
+          $ref: '#/definitions/status'
+externalDocs:
+  description: Wiki
+  url: 'https://wiki.efigence.com/doku.php/architektura:monitoring'
