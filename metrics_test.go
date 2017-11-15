@@ -28,6 +28,22 @@ func TestEWMA(t *testing.T) {
 
 }
 
+func TestEWMARate(t *testing.T) {
+	ewma := NewEWMARate(time.Minute)
+	errUpd1 := ewma.Update(1)
+	ewma.Update(1)
+	ewma.Update(1)
+	Convey("EWMA Init", t, func() {
+		So(errUpd1, ShouldEqual, nil)
+		So(ewma.Value(),ShouldBeGreaterThan,0)
+	})
+	m,err := json.Marshal(ewma)
+	Convey("EWMA serialization", t, func() {
+		So(err,ShouldBeNil)
+		So(string(m),ShouldContainSubstring,`{"type":"G","value":`)
+	})
+}
+
 func TestCounter(t *testing.T) {
 	ctr := NewCounter()
 	ctr.Update(123)

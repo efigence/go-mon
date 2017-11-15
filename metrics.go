@@ -27,6 +27,30 @@ func NewEWMA(halflife time.Duration) Metric {
 }
 
 
+type ewmaRateBackend struct {
+	ewma *ewma.EwmaRate
+}
+
+func (e *ewmaRateBackend)Update(u float64) {
+	e.ewma.UpdateNow()
+}
+func (e *ewmaRateBackend)Value() float64 {
+	return e.ewma.CurrentNow()
+}
+
+// New exponentally weighted moving average event rate counter
+// call Update(value is ignored) every time an event happens to get rate of the event
+//
+func NewEWMARate(halflife time.Duration) Metric {
+	return &MetricFloatBackend{
+		metricType: MetricTypeGauge,
+		backend:  &ewmaRateBackend{
+			ewma: ewma.NewEwmaRate(halflife),
+		},
+	}
+}
+
+
 type counterBackend struct {
 	counter int64
 	canBeNegative bool
