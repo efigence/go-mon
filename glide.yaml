@@ -1,0 +1,9 @@
+---
+package: github.com/efigence/go-mon
+import:
+- package: github.com/rcrowley/go-metrics
+- package: github.com/efigence/go-libs/ewma
+testImport:
+- package: github.com/smartystreets/goconvey
+  subpackages:
+  - convey
