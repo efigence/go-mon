@@ -11,6 +11,15 @@ func NewRawCounter(i int64) Metric {
 	}
 
 }
+
+// NewRawCounter return raw (no backend) counter.
+func NewRawCounterFloat(f float64) Metric {
+	return &MetricFloat {
+		metricType: MetricTypeCounterFloat,
+		value: f,
+	}
+
+}
 // NewRawCounter return raw (no backend) integer gauge.
 func NewRawGaugeInt(i int64) Metric {
 	return &MetricInt {

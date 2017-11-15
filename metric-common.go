@@ -11,6 +11,7 @@ const (
 	MetricTypeGauge = `G` // float64 gauge
 	MetricTypeGaugeInt = `g` // int64 gauge
 	MetricTypeCounter = `c` // int64 counter
+	MetricTypeCounterFloat = `C` // float64 counter
 )
 
 type Metric interface {
