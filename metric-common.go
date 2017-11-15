@@ -28,6 +28,12 @@ func Int64OrError(value interface{}) (int64, error) {
 		return v, nil
 	case int:
 		return int64(v), nil
+	case int32:
+		return int64(v), nil
+	case int16:
+		return int64(v), nil
+	case int8:
+		return int64(v), nil
 	case uint32: // uint64 is skipped because it doesn't fit in int64
 		return int64(v), nil
 	case uint16:
@@ -47,6 +53,22 @@ func Float64OrError(value interface{}) (float64, error) {
 	case int:
 		return float64(v), nil
 	case int64:
+		return float64(v), nil
+	case int32:
+		return float64(v), nil
+	case int16:
+		return float64(v), nil
+	case int8:
+		return float64(v), nil
+	case uint:
+		return float64(v), nil
+	case uint64:
+		return float64(v), nil
+	case uint32:
+		return float64(v), nil
+	case uint16:
+		return float64(v), nil
+	case uint8:
 		return float64(v), nil
 	default:
 		return math.NaN(),fmt.Errorf("Got type %T, expected float64", value)
