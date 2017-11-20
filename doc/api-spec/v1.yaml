@@ -35,6 +35,39 @@ paths:
           description: service critical
           schema:
             $ref: '#/definitions/status'
+  /metrics:
+    get:
+      tags:
+        - metrics
+      summary: Application metrics
+      description: Return application metrics
+      operationId: metrics
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: app metrics
+          schema:
+            $ref: '#/definitions/metrics'
+  /metrics/{metric}:
+    get:
+      tags:
+        - metrics
+      summary: Get single metric or metric category
+      parameters:
+        - name: metric
+          in: path
+          description: "metric name"
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: metric
+          schema:
+            $ref: '#/definitions/metric'
+
+
 definitions:
   status:
     type: object
@@ -89,11 +122,88 @@ definitions:
           --dirty` should make sensible one
       parts:
         type: object
-        description: >-
-          Sub-components of the aplication, in same format, with component name
-          as key
+        description: >
+          Sub-components of the aplication, in same format, with component name as key
         additionalProperties:
           $ref: '#/definitions/status'
+    example:
+      ts: 2006-01-02T15:04:05-0700
+      fqdn: testhost.example.com
+      component: monitorapp
+      status: 2
+      msg: "OK"
+      version: 1.2.3-5-a4256b39
+      parts:
+        disk:
+          ts: 2006-01-02T15:04:00-0700
+          fqdn: testhost.example.com
+          component: disk
+          status: 2
+          msg: "warning, 7% space free left"
+          version: 1.2.3-5-a4256b39
+        db:
+          ts: 2006-01-02T15:03:22-0700
+          fqdn: testhost.example.com
+          component: db
+          status: 1
+          msg: "DB connection OK"
+          version: 1.2.3-5-a4256b39
+
+
+
+  metrics:
+    type: object
+    description: >
+      Application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:
+
+        * `app.frontend.requests_ok`
+        * `app.threadpool.db.open_connections`
+        * `gc.full`
+
+    additionalProperties:
+      $ref: '#/definitions/metric'
+    example:
+      requests:
+        type: c
+        value: 123456
+      open_connections:
+        type: g
+        value: 20
+      temperature:
+        type: G
+        value: 24.3
+  metric:
+    type: object
+    description: "Single metric"
+    properties:
+      type:
+        type: "string"
+        enum:
+          - G
+          - g
+          - c
+        description: >-
+          Single-letter metric type:
+            * `G` - Gauge (float64) - current value of parameter, like "open files"
+            * `g` - Gauge (int64)
+            * `c` - Counter(int64) - counter, like "number of requests since boot", or "number of seconds in GC"
+      value:
+        oneOf:
+          - type: number
+          - type: integer
+    example:
+      gauge:
+        type: g
+        value: 2001
+      gauge_float:
+        type: G
+        value: 10.4
+      counter:
+        type: c
+        value: 10256
+
+
+
 externalDocs:
   description: Wiki
   url: 'https://wiki.efigence.com/doku.php/architektura:monitoring'
