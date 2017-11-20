@@ -45,6 +45,8 @@ func (r *Registry)Register(name string, metric Metric) (Metric, error)  {
 
 
 
+
+
 func init() {
 	_, name := filepath.Split(os.Args[0])
 	GlobalRegistry = &Registry{
@@ -61,17 +63,17 @@ func RegisterGcStats(t ...time.Duration) {
 	}
 	// make sure metrics actually exist in registry at the moment of exit
 	stats := &runtime.MemStats{}
-	gcCount, _ := GlobalRegistry.Register(`gc.count`, NewRawCounter(0))
-	gcPause, _ := GlobalRegistry.Register(`gc.pause_ns`, NewRawCounterFloat(0))
-	gcCPUPercentage, _ := GlobalRegistry.Register(`gc.cpu_percent`, NewEWMA(time.Minute))
-	heapAlloc, _ := GlobalRegistry.Register(`gc.heap_alloc`, NewEWMA(time.Minute))
-	heapIdle, _ := GlobalRegistry.Register(`gc.heap_idle`, NewEWMA(time.Minute))
-	heapInuse, _ := GlobalRegistry.Register(`gc.heap_inuse`, NewEWMA(time.Minute))
+	gcCount, _ := GlobalRegistry.Register(`gc.count`, NewRawCounter())
+	gcPause, _ := GlobalRegistry.Register(`gc.pause`, NewRawCounterFloat("duration"))
+	gcCPUPercentage, _ := GlobalRegistry.Register(`gc.cpu`, NewEWMA(time.Minute, "percent"))
+	heapAlloc, _ := GlobalRegistry.Register(`gc.heap_alloc`, NewEWMA(time.Minute, "bytes"))
+	heapIdle, _ := GlobalRegistry.Register(`gc.heap_idle`, NewEWMA(time.Minute, "bytes"))
+	heapInuse, _ := GlobalRegistry.Register(`gc.heap_inuse`, NewEWMA(time.Minute, "bytes"))
 	go func (){
 		for {
 			runtime.ReadMemStats(stats)
 			gcCount.Update(stats.NumGC)
-			gcPause.Update(float64(stats.PauseTotalNs))
+			gcPause.Update(float64(stats.PauseTotalNs)/1000000000)
 			gcCPUPercentage.Update(stats.GCCPUFraction)
 			heapAlloc.Update(stats.HeapAlloc)
 			heapIdle.Update(stats.HeapIdle)

@@ -17,9 +17,12 @@ func (e *ewmaBackend)Value() float64 {
 }
 
 // New exponentally weighted moving average metric
-func NewEWMA(halflife time.Duration) Metric {
+// arguments:
+//
+func NewEWMA(halflife time.Duration, unit string) Metric {
 	return &MetricFloatBackend{
 		metricType: MetricTypeGauge,
+		unit: unit,
 		backend:  &ewmaBackend{
 			ewma: ewma.NewEwma(halflife),
 		},

@@ -71,18 +71,25 @@ paths:
 definitions:
   status:
     type: object
+    required:
+        - ts
+        - fqdn
+        - status
+        - msg
     properties:
       ts:
         type: string
         format: date-time
-        description: timestamp of last status update
+        description: timestamp of last status update. **NOT** current time.
       fqdn:
         type: string
         description: FQDN of machine running application
         default: $local-machine.fqdn
       component:
         type: string
-        description: name of application's component. Optional
+        description: >
+            name of application component.
+            `component + fqdn` should be unique, for example suffix app's name with container ID
         default: main
       status:
         type: integer
@@ -175,18 +182,31 @@ definitions:
   metric:
     type: object
     description: "Single metric"
+    required:
+        - type
+        - value
     properties:
       type:
         type: "string"
         enum:
           - G
           - g
-          - c
+          - C
+          -
         description: >-
           Single-letter metric type:
             * `G` - Gauge (float64) - current value of parameter, like "open files"
             * `g` - Gauge (int64)
+            * `C` - Counter(float64) - counter, like "number of requests since boot", or "number of seconds in GC"
             * `c` - Counter(int64) - counter, like "number of requests since boot", or "number of seconds in GC"
+      unit:
+          type: string
+          description: >-
+            Unit of metric if that is not obvious from context.
+            For example, `gc.count` is unit-less but gc.time.milisecond could be written as name: `gc,time`, unit: `milliseconds`.
+            If monitoring backend doesn't support it, `unit` must be added to metric name after a dot.
+
+            For example, if backend only expects key-value (like graphite),  `gc.time` will be converted to `gc.time.milliseconds`
       value:
         oneOf:
           - type: number

@@ -4,35 +4,51 @@ import (
 )
 
 // NewRawCounter return raw (no backend) counter.
-func NewRawCounter(i int64) Metric {
+func NewRawCounter(unit ...string) Metric {
+	u := ""
+	if len(unit) > 0 {
+		u = unit[0]
+	}
 	return &MetricInt {
 		metricType: MetricTypeCounter,
-		value: i,
+		unit: u,
 	}
 
 }
 
 // NewRawCounter return raw (no backend) counter.
-func NewRawCounterFloat(f float64) Metric {
+func NewRawCounterFloat(unit ...string) Metric {
+	u := ""
+	if len(unit) > 0 {
+		u = unit[0]
+	}
 	return &MetricFloat {
 		metricType: MetricTypeCounterFloat,
-		value: f,
+		unit: u,
 	}
 
 }
 // NewRawCounter return raw (no backend) integer gauge.
-func NewRawGaugeInt(i int64) Metric {
+func NewRawGaugeInt(unit ...string) Metric {
+	u := ""
+	if len(unit) > 0 {
+		u = unit[0]
+	}
 	return &MetricInt {
 		metricType: MetricTypeGaugeInt,
-		value: i,
+		unit: u,
 	}
 
 }
 // NewRawCounter return raw (no backend) float gauge.
-func NewRawGauge(f float64) Metric {
+func NewRawGauge(unit ...string) Metric {
+	u := ""
+	if len(unit) > 0 {
+		u = unit[0]
+	}
 	return &MetricFloat {
 		metricType: MetricTypeGauge,
-		value: f,
+		unit: u,
 	}
 
 }

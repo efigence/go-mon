@@ -8,7 +8,7 @@ import (
 )
 
 func TestEWMA(t *testing.T) {
-	ewma := NewEWMA(time.Minute)
+	ewma := NewEWMA(time.Minute,"")
 	errUpd1 := ewma.Update(12)
 	Convey("EWMA Init", t, func() {
 		So(errUpd1, ShouldEqual, nil)
