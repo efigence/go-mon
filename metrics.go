@@ -1,18 +1,19 @@
 package mon
+
 import (
 	"github.com/efigence/go-libs/ewma"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 type ewmaBackend struct {
 	ewma *ewma.Ewma
 }
 
-func (e *ewmaBackend)Update(u float64) {
+func (e *ewmaBackend) Update(u float64) {
 	e.ewma.UpdateNow(u)
 }
-func (e *ewmaBackend)Value() float64 {
+func (e *ewmaBackend) Value() float64 {
 	return e.ewma.Current
 }
 
@@ -22,22 +23,21 @@ func (e *ewmaBackend)Value() float64 {
 func NewEWMA(halflife time.Duration, unit string) Metric {
 	return &MetricFloatBackend{
 		metricType: MetricTypeGauge,
-		unit: unit,
-		backend:  &ewmaBackend{
+		unit:       unit,
+		backend: &ewmaBackend{
 			ewma: ewma.NewEwma(halflife),
 		},
 	}
 }
 
-
 type ewmaRateBackend struct {
 	ewma *ewma.EwmaRate
 }
 
-func (e *ewmaRateBackend)Update(u float64) {
+func (e *ewmaRateBackend) Update(u float64) {
 	e.ewma.UpdateNow()
 }
-func (e *ewmaRateBackend)Value() float64 {
+func (e *ewmaRateBackend) Value() float64 {
 	return e.ewma.CurrentNow()
 }
 
@@ -47,19 +47,19 @@ func (e *ewmaRateBackend)Value() float64 {
 func NewEWMARate(halflife time.Duration) Metric {
 	return &MetricFloatBackend{
 		metricType: MetricTypeGauge,
-		backend:  &ewmaRateBackend{
+		backend: &ewmaRateBackend{
 			ewma: ewma.NewEwmaRate(halflife),
 		},
 	}
 }
 
-
 type counterBackend struct {
-	counter int64
+	counter       int64
 	canBeNegative bool
 }
-func (c *counterBackend)Update(u int64) {
-	atomic.AddInt64(&c.counter,u)
+
+func (c *counterBackend) Update(u int64) {
+	atomic.AddInt64(&c.counter, u)
 	// FIXME probably should add remainder from overflow instead of zeroing it
 	if !c.canBeNegative && c.counter < 0 {
 		ctr := c.counter
@@ -69,17 +69,18 @@ func (c *counterBackend)Update(u int64) {
 		}
 	}
 }
-func (c *counterBackend)Value() int64 {
+func (c *counterBackend) Value() int64 {
 	ctr := c.counter
 	if !c.canBeNegative && ctr < 0 {
 		return 0
 	}
 	return ctr
 }
+
 // New counter. Updating it will INCREMENT internal counter. If you want to just set a value directly, use NewRawCounter() instead. Overflows to zero
 func NewCounter() Metric {
-	return &MetricIntBackend {
+	return &MetricIntBackend{
 		metricType: MetricTypeCounter,
-		backend: &counterBackend{},
+		backend:    &counterBackend{},
 	}
 }

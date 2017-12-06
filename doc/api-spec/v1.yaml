@@ -203,7 +203,8 @@ definitions:
           type: string
           description: >-
             Unit of metric if that is not obvious from context.
-            For example, `gc.count` is unit-less but gc.time.milisecond could be written as name: `gc,time`, unit: `milliseconds`.
+            For example, `gc.count` is unit-less but `gc.time.milisecond` could be written as name: `gc.time`, unit: `milliseconds`.
+
             If monitoring backend doesn't support it, `unit` must be added to metric name after a dot.
 
             For example, if backend only expects key-value (like graphite),  `gc.time` will be converted to `gc.time.milliseconds`

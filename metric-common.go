@@ -1,6 +1,5 @@
 package mon
 
-
 import (
 	"encoding/json"
 	"fmt"
@@ -8,9 +7,9 @@ import (
 )
 
 const (
-	MetricTypeGauge = `G` // float64 gauge
-	MetricTypeGaugeInt = `g` // int64 gauge
-	MetricTypeCounter = `c` // int64 counter
+	MetricTypeGauge        = `G` // float64 gauge
+	MetricTypeGaugeInt     = `g` // int64 gauge
+	MetricTypeCounter      = `c` // int64 counter
 	MetricTypeCounterFloat = `C` // float64 counter
 )
 
@@ -20,7 +19,7 @@ type Metric interface {
 	Unit() string
 	Value() float64
 	ValueRaw() interface{}
-//	json.Marshaler
+	//	json.Marshaler
 }
 
 func Int64OrError(value interface{}) (int64, error) {
@@ -42,7 +41,7 @@ func Int64OrError(value interface{}) (int64, error) {
 	case uint8:
 		return int64(v), nil
 	default:
-		return 0,fmt.Errorf("Got type %T, expected float64", value)
+		return 0, fmt.Errorf("Got type %T, expected float64", value)
 	}
 }
 func Float64OrError(value interface{}) (float64, error) {
@@ -72,7 +71,7 @@ func Float64OrError(value interface{}) (float64, error) {
 	case uint8:
 		return float64(v), nil
 	default:
-		return math.NaN(),fmt.Errorf("Got type %T, expected float64", value)
+		return math.NaN(), fmt.Errorf("Got type %T, expected float64", value)
 	}
 }
 
@@ -81,6 +80,7 @@ type StatBackendInt interface {
 	Update(int64)
 	Value() int64
 }
+
 // backend interface handling single integer stat
 type StatBackendFloat interface {
 	Update(float64)
@@ -89,18 +89,16 @@ type StatBackendFloat interface {
 
 // API-compatible JSON output structure
 type JSONOut struct {
-	Type string `json:"type"`
-	Unit string `json:"unit,omitempty"`
+	Type  string      `json:"type"`
+	Unit  string      `json:"unit,omitempty"`
 	Value interface{} `json:"value"`
-
 }
 
 // raw float metric with no backend
 type MetricFloat struct {
-	metricType string `json:"type"`
-	unit string `json:"unit,omitempty"`
-	value float64 `json:"value"`
-
+	metricType string  `json:"type"`
+	unit       string  `json:"unit,omitempty"`
+	value      float64 `json:"value"`
 }
 
 func (f *MetricFloat) Type() string {
@@ -118,26 +116,28 @@ func (f *MetricFloat) ValueRaw() interface{} {
 
 func (f *MetricFloat) Update(value interface{}) (err error) {
 	v, err := Float64OrError(value)
-	if err == nil { f.value = v }
+	if err == nil {
+		f.value = v
+	}
 	return err
 }
 
-
 func (f *MetricFloat) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
-		JSONOut {
-			Type: f.metricType,
+		JSONOut{
+			Type:  f.metricType,
 			Value: f.value,
-			Unit: f.unit,
+			Unit:  f.unit,
 		})
 }
 
 // raw int metric with no backend
 type MetricInt struct {
 	metricType string
-	unit string
-	value int64
+	unit       string
+	value      int64
 }
+
 func (f *MetricInt) Type() string {
 	return f.metricType
 }
@@ -152,23 +152,27 @@ func (f *MetricInt) ValueRaw() interface{} {
 }
 func (f *MetricInt) Update(value interface{}) (err error) {
 	v, err := Int64OrError(value)
-	if err == nil { f.value = v }
+	if err == nil {
+		f.value = v
+	}
 	return err
 }
 func (f *MetricInt) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
-		JSONOut {
-			Type: f.metricType,
+		JSONOut{
+			Type:  f.metricType,
 			Value: f.value,
-			Unit: f.unit,
+			Unit:  f.unit,
 		})
 }
+
 // Int metric with backend
 type MetricIntBackend struct {
 	metricType string
-	unit string
-	backend StatBackendInt
+	unit       string
+	backend    StatBackendInt
 }
+
 func (f *MetricIntBackend) Type() string {
 	return f.metricType
 }
@@ -183,24 +187,27 @@ func (f *MetricIntBackend) ValueRaw() interface{} {
 }
 func (f *MetricIntBackend) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
-		JSONOut {
-			Type: f.metricType,
-			Unit: f.unit,
+		JSONOut{
+			Type:  f.metricType,
+			Unit:  f.unit,
 			Value: f.backend.Value(),
 		})
 }
 func (f *MetricIntBackend) Update(value interface{}) (err error) {
 	v, err := Int64OrError(value)
-	if err == nil { f.backend.Update(v) }
+	if err == nil {
+		f.backend.Update(v)
+	}
 	return err
 }
 
 // float metric with backend
 type MetricFloatBackend struct {
 	metricType string
-	unit string
-	backend StatBackendFloat
+	unit       string
+	backend    StatBackendFloat
 }
+
 func (f *MetricFloatBackend) Type() string {
 	return f.metricType
 }
@@ -215,14 +222,16 @@ func (f *MetricFloatBackend) ValueRaw() interface{} {
 }
 func (f *MetricFloatBackend) MarshalJSON() ([]byte, error) {
 	return json.Marshal(
-		JSONOut {
-			Type: f.metricType,
-			Unit: f.unit,
+		JSONOut{
+			Type:  f.metricType,
+			Unit:  f.unit,
 			Value: f.backend.Value(),
 		})
 }
 func (f *MetricFloatBackend) Update(value interface{}) (err error) {
 	v, err := Float64OrError(value)
-	if err == nil { f.backend.Update(v) }
+	if err == nil {
+		f.backend.Update(v)
+	}
 	return err
 }

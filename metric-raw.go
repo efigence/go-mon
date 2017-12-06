@@ -1,7 +1,6 @@
 package mon
 
-import (
-)
+import ()
 
 // NewRawCounter return raw (no backend) counter.
 func NewRawCounter(unit ...string) Metric {
@@ -9,9 +8,9 @@ func NewRawCounter(unit ...string) Metric {
 	if len(unit) > 0 {
 		u = unit[0]
 	}
-	return &MetricInt {
+	return &MetricInt{
 		metricType: MetricTypeCounter,
-		unit: u,
+		unit:       u,
 	}
 
 }
@@ -22,33 +21,35 @@ func NewRawCounterFloat(unit ...string) Metric {
 	if len(unit) > 0 {
 		u = unit[0]
 	}
-	return &MetricFloat {
+	return &MetricFloat{
 		metricType: MetricTypeCounterFloat,
-		unit: u,
+		unit:       u,
 	}
 
 }
+
 // NewRawCounter return raw (no backend) integer gauge.
 func NewRawGaugeInt(unit ...string) Metric {
 	u := ""
 	if len(unit) > 0 {
 		u = unit[0]
 	}
-	return &MetricInt {
+	return &MetricInt{
 		metricType: MetricTypeGaugeInt,
-		unit: u,
+		unit:       u,
 	}
 
 }
+
 // NewRawCounter return raw (no backend) float gauge.
 func NewRawGauge(unit ...string) Metric {
 	u := ""
 	if len(unit) > 0 {
 		u = unit[0]
 	}
-	return &MetricFloat {
+	return &MetricFloat{
 		metricType: MetricTypeGauge,
-		unit: u,
+		unit:       u,
 	}
 
 }
