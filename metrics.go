@@ -20,14 +20,17 @@ func (e *ewmaBackend) Value() float64 {
 // New exponentally weighted moving average metric
 // arguments:
 //
-func NewEWMA(halflife time.Duration, unit string) Metric {
-	return &MetricFloatBackend{
+func NewEWMA(halflife time.Duration, unit ...string) Metric {
+	metric := &MetricFloatBackend{
 		metricType: MetricTypeGauge,
-		unit:       unit,
 		backend: &ewmaBackend{
 			ewma: ewma.NewEwma(halflife),
 		},
 	}
+	if len(unit) > 0 {
+		metric.unit = unit[0]
+	}
+	return metric
 }
 
 type ewmaRateBackend struct {
@@ -44,13 +47,17 @@ func (e *ewmaRateBackend) Value() float64 {
 // New exponentally weighted moving average event rate counter
 // call Update(value is ignored) every time an event happens to get rate of the event
 //
-func NewEWMARate(halflife time.Duration) Metric {
-	return &MetricFloatBackend{
+func NewEWMARate(halflife time.Duration, unit ...string) Metric {
+	metric := &MetricFloatBackend{
 		metricType: MetricTypeGauge,
 		backend: &ewmaRateBackend{
 			ewma: ewma.NewEwmaRate(halflife),
 		},
 	}
+	if len(unit) > 0 {
+		metric.unit = unit[0]
+	}
+	return metric
 }
 
 type counterBackend struct {

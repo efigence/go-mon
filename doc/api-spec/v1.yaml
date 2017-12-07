@@ -84,7 +84,6 @@ definitions:
       fqdn:
         type: string
         description: FQDN of machine running application
-        default: $local-machine.fqdn
       component:
         type: string
         description: >
@@ -160,25 +159,61 @@ definitions:
 
   metrics:
     type: object
-    description: >
-      Application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:
+    description: >-
+      List of metrics per particular instance of application.
+      Pair of fqdn + instance should be unique per organization, so no 2 apps report using same combination of those two.
 
-        * `app.frontend.requests_ok`
-        * `app.threadpool.db.open_connections`
-        * `gc.full`
+      For example if you run more than one copy of same app on one machine you can use docker ID like this
 
-    additionalProperties:
-      $ref: '#/definitions/metric'
+          fqdn: d5bdd6bef663@dockerhost3124.example.com
+          instance: mobile-frontend
+
+    required:
+     - instance
+     - fqdn
+     - metrics
+    properties:
+      instance:
+        type: string
+        description: Application or application instance name. Should be unique per host/fqdn.
+      fqdn:
+        type: string
+        description: >-
+          FQDN of machine running application or other unique identifier of device running the app. Optionally, container ID in case if it is docker machine, preferably in `id@fqdn format`.
+        default: $local-machine.fqdn
+      metrics:
+        description: >-
+          Map of application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:
+
+            * `app.frontend.requests_ok`
+            * `app.threadpool.db.open_connections`
+            * `gc.full`
+          name should be maximum of 60 ASCII characters except slash. Any non-ascii characters can be urlencoded
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/metric'
     example:
-      requests:
-        type: c
-        value: 123456
-      open_connections:
-        type: g
-        value: 20
-      temperature:
-        type: G
-        value: 24.3
+      instance: mobile-app
+      metrics:
+        requests:
+          type: c
+          value: 123456
+        open_connections:
+          type: g
+          value: 20
+        temperature:
+          type: G
+          value: 24.3
+        latency:
+          type: G
+          unit: percentile
+          value: 0.844
+          value_complex:
+            50th: 0.34
+            75th: 0.40
+            95th: 0.63
+            99th: 0.844
+            99.9th: 1.838
   metric:
     type: object
     description: "Single metric"
@@ -203,15 +238,52 @@ definitions:
           type: string
           description: >-
             Unit of metric if that is not obvious from context.
-            For example, `gc.count` is unit-less but `gc.time.milisecond` could be written as name: `gc.time`, unit: `milliseconds`.
+            For example, `gc.count` is unit-less but `gc.time:milisecond` could be written as name: `gc.time`, unit: `milliseconds`.
 
-            If monitoring backend doesn't support it, `unit` must be added to metric name after a dot.
+            If monitoring backend doesn't support it, `unit` must be added to metric name after a `^`.
 
-            For example, if backend only expects key-value (like graphite),  `gc.time` will be converted to `gc.time.milliseconds`
+            For example, if backend only expects key-value (like graphite),  `gc.time` will be converted to `gc.time^milliseconds`
       value:
         oneOf:
           - type: number
           - type: integer
+        description: >-
+            Value of the metric. Should be of same type as specified in `type`.
+            Should be a single value describing the metric. In in case of metrics that have more than one value it should be one most descriptive for data point )and rest moved to `value_complex.F
+            For example, returning percentile:
+
+                name: backend.lantency
+                type: percentile
+                value: 191 # 99th
+                value_complex:
+                    75th: 164,
+                    95th: 190,
+                    99th: 191,
+                    99.9th: 194,
+
+            or when returning network speed:
+
+                name: interface.eth4
+                type: if_octets:
+                value: 2163986069 # sum
+                value_complex:
+                    rx: 1981752169
+                    tx: 182233900
+
+
+      value_complex:
+          type: object
+          description: >-
+                Map of any extra values attached to metric, for example percentiles of latency:
+
+                    name: backend.lantency
+                    type: percentile
+                    value: 191 # 99th
+                    value_complex:
+                        75th: 164,
+                        95th: 190,
+                        99th: 191,
+                        99.9th: 194,
     example:
       gauge:
         type: g
