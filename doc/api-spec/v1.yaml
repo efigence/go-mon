@@ -32,6 +32,10 @@ paths:
           schema:
             $ref: '#/definitions/status'
         '500':
+          description: service unknown/undefined state
+          schema:
+            $ref: '#/definitions/status'
+        '503':
           description: service critical
           schema:
             $ref: '#/definitions/status'
@@ -74,6 +78,7 @@ definitions:
     required:
         - ts
         - fqdn
+        - name
         - status
         - msg
     properties:
@@ -84,12 +89,20 @@ definitions:
       fqdn:
         type: string
         description: FQDN of machine running application
-      component:
+      name:
         type: string
         description: >
             name of application component.
-            `component + fqdn` should be unique, for example suffix app's name with container ID
+            `name + fqdn` should be unique, for example suffix app's name with container ID
         default: main
+      display_name:
+        type: string
+        description: >
+            Pretty name for the component (when displaying on dashboard etc.). Optional
+      description:
+        type: string
+        description: >
+            Longer description in service, optionally in markdown
       status:
         type: integer
         format: uint8
@@ -126,10 +139,11 @@ definitions:
 
           If repo uses version tags `git describe --tags --long --always
           --dirty` should make sensible one
-      parts:
+      components:
         type: object
         description: >
-          Sub-components of the aplication, in same format, with component name as key
+          Sub-components of the aplication, in same format, with component name as key.
+          Application is required to calculate status from the statuses of its subcomponents on its own.
         additionalProperties:
           $ref: '#/definitions/status'
     example:

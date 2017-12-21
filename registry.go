@@ -2,14 +2,10 @@ package mon
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
 )
-
-var GlobalRegistry *Registry
 
 type Registry struct {
 	Metrics  map[string]Metric `json:"metrics"`
@@ -74,14 +70,6 @@ func (r *Registry) MustRegister(name string, metric Metric) Metric {
 	}
 	r.Metrics[name] = metric
 	return metric
-}
-
-func init() {
-	_, name := filepath.Split(os.Args[0])
-	GlobalRegistry = &Registry{
-		Instance: name,
-		Metrics:  make(map[string]Metric),
-	}
 }
 
 func RegisterGcStats(t ...time.Duration) {
