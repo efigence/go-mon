@@ -18,7 +18,7 @@ func (e *ewmaBackend) Value() float64 {
 }
 
 // New exponentally weighted moving average metric
-// arguments:
+// halflife is half-life of stat decay
 //
 func NewEWMA(halflife time.Duration, unit ...string) Metric {
 	metric := &MetricFloatBackend{
@@ -36,7 +36,7 @@ func NewEWMA(halflife time.Duration, unit ...string) Metric {
 type ewmaRateBackend struct {
 	ewma *ewma.EwmaRate
 }
-
+// Update rate counter. Value is ignored, each Update() call is one "request" for rate calculation
 func (e *ewmaRateBackend) Update(u float64) {
 	e.ewma.UpdateNow()
 }

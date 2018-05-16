@@ -47,10 +47,17 @@ func (r *Registry) GetRegistry() (*Registry) {
 	r.Unlock()
 	return &clone
 }
-
+// Set instance name returned by registry during marshalling
 func (r *Registry) SetInstance(name string) {
 	r.Lock()
 	r.Instance = name
+	r.Unlock()
+}
+
+// Set FQDN returned by registry during marshalling
+func (r *Registry) SetFQDN(name string) {
+	r.Lock()
+	r.FQDN = name
 	r.Unlock()
 }
 

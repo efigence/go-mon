@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+// Global registry, will use app's executable name as instance and try best to guess FQDN
+// You can change thos via Set..() family of methods
 var GlobalRegistry *Registry
 var GlobalStatus *Status
 func init() {

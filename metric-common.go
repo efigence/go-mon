@@ -12,7 +12,7 @@ const (
 	MetricTypeCounter      = `c` // int64 counter
 	MetricTypeCounterFloat = `C` // float64 counter
 )
-
+// Single metric handler interface
 type Metric interface {
 	Type() string
 	Update(interface{}) error
@@ -22,6 +22,7 @@ type Metric interface {
 	//	json.Marshaler
 }
 
+// Return int64 or coversion error
 func Int64OrError(value interface{}) (int64, error) {
 	switch v := value.(type) {
 	case int64:
@@ -44,6 +45,7 @@ func Int64OrError(value interface{}) (int64, error) {
 		return 0, fmt.Errorf("Got type %T, expected float64", value)
 	}
 }
+// Return float64 or conversion error
 func Float64OrError(value interface{}) (float64, error) {
 	switch v := value.(type) {
 	case float64:

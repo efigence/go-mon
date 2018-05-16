@@ -11,7 +11,7 @@ func HandleMetrics( w http.ResponseWriter, req *http.Request) {
 	r.JSON(w, http.StatusOK,  GlobalRegistry.GetRegistry())
 
 }
-
+// HandleHealthchecks returns GlobalStatus with appropriate HTTP code
 func HandleHealthcheck ( w http.ResponseWriter, req *http.Request) {
 	switch GlobalStatus.State {
 	case StateOk:
