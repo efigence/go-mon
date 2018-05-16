@@ -195,6 +195,10 @@ definitions:
         description: >-
           FQDN of machine running application or other unique identifier of device running the app. Optionally, container ID in case if it is docker machine, preferably in `id@fqdn format`.
         default: $local-machine.fqdn
+      ts:
+        type: string
+        format: date-time
+        description: timestamp of last status update.
       metrics:
         description: >-
           Map of application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:

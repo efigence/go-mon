@@ -16,3 +16,9 @@ func TestDummy(t *testing.T) {
 		So(string(m), ShouldContainSubstring, `"gc.count"`)
 	})
 }
+
+func BenchmarkRegistry_GetRegistry(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+                GlobalRegistry.GetRegistry()
+        }
+}

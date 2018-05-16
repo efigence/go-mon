@@ -10,7 +10,17 @@ import (
 type Registry struct {
 	Metrics  map[string]Metric `json:"metrics"`
 	Instance string            `json:"instance"`
+	FQDN  string               `json:"fqdn"`
+	Ts    time.Time            `json:"ts,omitempty"`
 	sync.Mutex
+}
+
+func NewRegistry (fqdn string, instance string) (*Registry, error) {
+	return &Registry{
+		FQDN: fqdn,
+		Instance: instance,
+		Metrics: make(map[string]Metric),
+	}, nil
 }
 
 func (r *Registry) GetMetric(name string) (Metric, error) {
@@ -21,11 +31,39 @@ func (r *Registry) GetMetric(name string) (Metric, error) {
 	}
 }
 
+// Returns a shallow copy of registry with current timestamp.
+// Should be used as source for any serializer
+func (r *Registry) GetRegistry() (*Registry) {
+	r.Lock()
+	clone := Registry{
+		FQDN:     r.FQDN,
+		Instance: r.Instance,
+		Metrics: make(map[string]Metric),
+	}
+	for k, v := range r.Metrics {
+		clone.Metrics[k] = v
+	}
+	clone.Ts = time.Now()
+	r.Unlock()
+	return &clone
+}
+
 func (r *Registry) SetInstance(name string) {
 	r.Lock()
 	r.Instance = name
 	r.Unlock()
 }
+
+// update timestamp. Should be called before read if timestamp is desirable in output
+func (r *Registry) UpdateTs() {
+	// note that in this implementation metrics are wholly independent on eachother so
+	// ts should always be same as time of update
+	r.Lock()
+	r.Ts = time.Now()
+	r.Unlock()
+}
+
+
 
 // Register() a given metric or return error if name is already used
 func (r *Registry) Register(name string, metric Metric) (Metric, error) {
