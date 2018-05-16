@@ -42,7 +42,7 @@ func Int64OrError(value interface{}) (int64, error) {
 	case uint8:
 		return int64(v), nil
 	default:
-		return 0, fmt.Errorf("Got type %T, expected float64", value)
+		return 0, fmt.Errorf("Got type %T, expected int64 or any smaller one that fits", value)
 	}
 }
 // Return float64 or conversion error
@@ -73,7 +73,7 @@ func Float64OrError(value interface{}) (float64, error) {
 	case uint8:
 		return float64(v), nil
 	default:
-		return math.NaN(), fmt.Errorf("Got type %T, expected float64", value)
+		return math.NaN(), fmt.Errorf("Got type %T, expected float64 or any smaller one that fits", value)
 	}
 }
 

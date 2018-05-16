@@ -198,7 +198,10 @@ definitions:
       ts:
         type: string
         format: date-time
-        description: timestamp of last status update.
+        description: >-
+          Timestamp of last update.
+
+          Required if push-type transport doesn't do timestamping or self-contained metrics snapshot is desired (example: pushing metric updates via queue)
       metrics:
         description: >-
           Map of application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:
