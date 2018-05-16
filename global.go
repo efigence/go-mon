@@ -12,7 +12,7 @@ var GlobalRegistry *Registry
 var GlobalStatus *Status
 func init() {
 	_, name := filepath.Split(os.Args[0])
-	r, err := NewRegistry(getFQDN(),name)
+	r, err := NewRegistry(getFQDN(),name,10)
 	if err != nil {
 		panic(fmt.Sprintf("could not create global registry: %s",err))
 	}

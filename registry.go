@@ -10,15 +10,17 @@ import (
 type Registry struct {
 	Metrics  map[string]Metric `json:"metrics"`
 	Instance string            `json:"instance"`
+	Interval float64           `json:"interval"`
 	FQDN  string               `json:"fqdn"`
 	Ts    time.Time            `json:"ts,omitempty"`
 	sync.Mutex
 }
 
-func NewRegistry (fqdn string, instance string) (*Registry, error) {
+func NewRegistry (fqdn string, instance string, interval float64) (*Registry, error) {
 	return &Registry{
 		FQDN: fqdn,
 		Instance: instance,
+		Interval: interval,
 		Metrics: make(map[string]Metric),
 	}, nil
 }
@@ -38,6 +40,7 @@ func (r *Registry) GetRegistry() (*Registry) {
 	clone := Registry{
 		FQDN:     r.FQDN,
 		Instance: r.Instance,
+		Interval: r.Interval,
 		Metrics: make(map[string]Metric),
 	}
 	for k, v := range r.Metrics {
@@ -58,6 +61,11 @@ func (r *Registry) SetInstance(name string) {
 func (r *Registry) SetFQDN(name string) {
 	r.Lock()
 	r.FQDN = name
+	r.Unlock()
+}
+func (r *Registry) SetInterval(interval float64) {
+	r.Lock()
+	r.Interval = interval
 	r.Unlock()
 }
 
