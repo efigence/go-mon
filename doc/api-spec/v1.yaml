@@ -205,7 +205,8 @@ definitions:
       interval:
         type: number
         description: >-
-          Interval of updates. Should be same as interval of sending events (in case of push-based metrics), or be used by poller to determine how often to poll for new data
+          Interval of updates. Should be same as interval of sending events (in case of push-based metrics), or be used by poller to determine how often to poll for new data.
+          Alternatively it can be used to detect stale data
       metrics:
         description: >-
           Map of application metrics named hierarchically with dot(`.`) as delimiter. Should be in {app}.{component}.{subcomponent(s)}.{name} format for example:
@@ -218,7 +219,9 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/metric'
     example:
+      fqdn: host.example.com
       instance: mobile-app
+      interval: 10
       metrics:
         requests:
           type: c
