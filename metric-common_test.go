@@ -5,6 +5,7 @@ import (
 		. "github.com/smartystreets/goconvey/convey"
 	"reflect"
 	"math"
+	"time"
 )
 
 func TestMetricsCommon(t *testing.T) {
@@ -79,8 +80,30 @@ func TestMetricsNaN(t *testing.T) {
 	}
 
 	out, err := g.MarshalJSON()
-	Convey("from string to int64", t, func() {
+	Convey("Nil should report as invalid", t, func() {
 		So(err, ShouldBeNil)
 		So(string(out), ShouldContainSubstring,`"invalid":true`)
 	})
+	r := NewEWMARate(time.Minute)
+	// test if concurrency doesn't cause something funny (EWMA backend is not threadsafe
+	for i := 0; i < 100000 ; i++ {
+		go r.Update(1)
+		go r.Update(1)
+		go r.Update(1)
+		go r.Update(1)
+		//go r.Update(1)
+		//go r.Update(1)
+		//go r.Update(1)
+	}
+	Convey("concurrency should not cause NAN", t, func() {
+		So(math.IsNaN(r.Value()),ShouldBeFalse)
+	})
+}
+
+func BenchmarkEwmaBackend_Update(b *testing.B) {
+	r := NewEWMARate(time.Minute)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+                r.Update(1)
+	}
 }

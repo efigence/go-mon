@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sync"
 )
 
 const (
@@ -180,10 +181,15 @@ func (f *MetricInt) MarshalJSON() ([]byte, error) {
 }
 
 // Int metric with backend
+//
+// By default backend is updated with mutex lock, all other locking have to be
+// handled by the backend itself
+
 type MetricIntBackend struct {
 	metricType string
 	unit       string
 	backend    StatBackendInt
+	sync.Mutex
 }
 
 func (f *MetricIntBackend) Type() string {
@@ -209,17 +215,23 @@ func (f *MetricIntBackend) MarshalJSON() ([]byte, error) {
 }
 func (f *MetricIntBackend) Update(value interface{}) (err error) {
 	v, err := Int64OrError(value)
+	f.Lock()
 	if err == nil {
 		f.backend.Update(v)
 	}
+	f.Unlock()
 	return err
 }
 
-// float metric with backend
+// Float metric with backend.
+//
+// By default backend is updated with mutex lock, all other locking have to be
+// handled by the backend itself
 type MetricFloatBackend struct {
 	metricType string
 	unit       string
 	backend    StatBackendFloat
+	sync.Mutex
 }
 
 func (f *MetricFloatBackend) Type() string {
@@ -254,8 +266,10 @@ func (f *MetricFloatBackend) MarshalJSON() ([]byte, error) {
 }
 func (f *MetricFloatBackend) Update(value interface{}) (err error) {
 	v, err := Float64OrError(value)
+	f.Lock()
 	if err == nil {
 		f.backend.Update(v)
 	}
+	f.Unlock()
 	return err
 }
