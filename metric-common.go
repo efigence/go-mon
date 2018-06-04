@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -103,6 +104,7 @@ type MetricFloat struct {
 	metricType string  `json:"type"`
 	unit       string  `json:"unit,omitempty"`
 	value      float64 `json:"value"`
+	sync.Mutex
 }
 
 func (f *MetricFloat) Type() string {
@@ -120,9 +122,11 @@ func (f *MetricFloat) ValueRaw() interface{} {
 
 func (f *MetricFloat) Update(value interface{}) (err error) {
 	v, err := Float64OrError(value)
+	f.Lock()
 	if err == nil {
 		f.value = v
 	}
+	f.Unlock()
 	return err
 }
 
@@ -150,6 +154,7 @@ type MetricInt struct {
 	metricType string
 	unit       string
 	value      int64
+	sync.Mutex
 }
 
 func (f *MetricInt) Type() string {
@@ -159,19 +164,22 @@ func (f *MetricInt) Unit() string {
 	return f.unit
 }
 func (f *MetricInt) Value() float64 {
-	return float64(f.value)
+	return float64(atomic.LoadInt64(&f.value))
 }
 func (f *MetricInt) ValueRaw() interface{} {
-	return f.value
+	return atomic.LoadInt64(&f.value)
 }
 func (f *MetricInt) Update(value interface{}) (err error) {
 	v, err := Int64OrError(value)
 	if err == nil {
-		f.value = v
+		// ignored on purpose; if 2 writes happen at same time there is no "right" answer whether to repeat or not
+		atomic.CompareAndSwapInt64(&f.value,f.value,v)
 	}
 	return err
 }
 func (f *MetricInt) MarshalJSON() ([]byte, error) {
+	f.Lock()
+	defer f.Unlock()
 	return json.Marshal(
 		JSONOut{
 			Type:  f.metricType,
@@ -205,7 +213,8 @@ func (f *MetricIntBackend) ValueRaw() interface{} {
 	return f.backend.Value()
 }
 func (f *MetricIntBackend) MarshalJSON() ([]byte, error) {
-
+	f.Lock()
+	defer f.Unlock()
 	return json.Marshal(
 		JSONOut{
 			Type:  f.metricType,
@@ -247,6 +256,8 @@ func (f *MetricFloatBackend) ValueRaw() interface{} {
 	return f.backend.Value()
 }
 func (f *MetricFloatBackend) MarshalJSON() ([]byte, error) {
+	f.Lock()
+	defer f.Unlock()
 	v := f.backend.Value()
 	// Go bug #3480 #25721
 	// returning number is only option, or else Go (or other strict deserializers) will crap out on ingestion

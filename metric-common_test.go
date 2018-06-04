@@ -84,26 +84,52 @@ func TestMetricsNaN(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(string(out), ShouldContainSubstring,`"invalid":true`)
 	})
-	r := NewEWMARate(time.Minute)
-	// test if concurrency doesn't cause something funny (EWMA backend is not threadsafe
-	for i := 0; i < 100000 ; i++ {
-		go r.Update(1)
-		go r.Update(1)
-		go r.Update(1)
-		go r.Update(1)
-		//go r.Update(1)
-		//go r.Update(1)
-		//go r.Update(1)
-	}
-	Convey("concurrency should not cause NAN", t, func() {
-		So(math.IsNaN(r.Value()),ShouldBeFalse)
-	})
 }
 
 func BenchmarkEwmaBackend_Update(b *testing.B) {
 	r := NewEWMARate(time.Minute)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-                r.Update(1)
+		r.Update(1)
+	}
+}
+
+func BenchmarkEwmaBackend_Value(b *testing.B) {
+	r := NewEWMARate(time.Minute)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = r.Value()
+	}
+}
+
+
+func BenchmarkMetricInt_Update(b *testing.B) {
+	r := NewRawGaugeInt()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		r.Update(1)
+	}
+}
+func BenchmarkMetricInt_Value(b *testing.B) {
+	r := NewRawGaugeInt()
+	r.Update(1)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = r.Value()
+	}
+}
+func BenchmarkMetricFloat_Update(b *testing.B) {
+	r := NewRawGauge()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		r.Update(1)
+	}
+}
+func BenchmarkMetricFloat_Value(b *testing.B) {
+	r := NewRawGauge()
+	r.Update(1)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = r.Value()
 	}
 }

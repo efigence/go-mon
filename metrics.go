@@ -77,7 +77,7 @@ func (c *counterBackend) Update(u int64) {
 	}
 }
 func (c *counterBackend) Value() int64 {
-	ctr := c.counter
+	ctr := atomic.LoadInt64(&c.counter)
 	if !c.canBeNegative && ctr < 0 {
 		return 0
 	}
