@@ -271,6 +271,10 @@ definitions:
             If monitoring backend doesn't support it, `unit` must be added to metric name after a `^`.
 
             For example, if backend only expects key-value (like graphite),  `gc.time` will be converted to `gc.time^milliseconds`
+      invalid:
+          type: boolean
+          description: >-
+            Presence implies that returned value is invalid and should not be parsed further. The reason for having separate field for that is that JSON does not handle +Inf/-Inf/NaN correctly
       value:
         oneOf:
           - type: number

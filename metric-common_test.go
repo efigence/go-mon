@@ -4,6 +4,7 @@ import (
 	"testing"
 		. "github.com/smartystreets/goconvey/convey"
 	"reflect"
+	"math"
 )
 
 func TestMetricsCommon(t *testing.T) {
@@ -69,6 +70,17 @@ func TestMetricsCommon(t *testing.T) {
 	Convey("from string to int64", t, func() {
 		So(err, ShouldNotBeNil)
 	})
+}
 
+func TestMetricsNaN(t *testing.T) {
+	g := MetricFloat{
+		metricType: "g",
+		value: math.NaN(),
+	}
 
+	out, err := g.MarshalJSON()
+	Convey("from string to int64", t, func() {
+		So(err, ShouldBeNil)
+		So(string(out), ShouldContainSubstring,`"invalid":true`)
+	})
 }

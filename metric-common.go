@@ -93,6 +93,7 @@ type StatBackendFloat interface {
 type JSONOut struct {
 	Type  string      `json:"type"`
 	Unit  string      `json:"unit,omitempty"`
+	Invalid bool      `json:"invalid,omitempty"`
 	Value interface{} `json:"value"`
 }
 
@@ -125,6 +126,16 @@ func (f *MetricFloat) Update(value interface{}) (err error) {
 }
 
 func (f *MetricFloat) MarshalJSON() ([]byte, error) {
+	// Go bug #3480 #25721
+	// returning number is only option, or else Go (or other strict deserializers) will crap out on ingestion
+	if math.IsNaN(f.value) {
+		return json.Marshal(
+			JSONOut{
+				Type:  f.metricType,
+				Invalid: true,
+				Unit:  f.unit,
+			})
+	}
 	return json.Marshal(
 		JSONOut{
 			Type:  f.metricType,
@@ -188,6 +199,7 @@ func (f *MetricIntBackend) ValueRaw() interface{} {
 	return f.backend.Value()
 }
 func (f *MetricIntBackend) MarshalJSON() ([]byte, error) {
+
 	return json.Marshal(
 		JSONOut{
 			Type:  f.metricType,
@@ -223,11 +235,21 @@ func (f *MetricFloatBackend) ValueRaw() interface{} {
 	return f.backend.Value()
 }
 func (f *MetricFloatBackend) MarshalJSON() ([]byte, error) {
+	v := f.backend.Value()
+	// Go bug #3480 #25721
+	// returning number is only option, or else Go (or other strict deserializers) will crap out on ingestion
+	if math.IsNaN(v) {
+		return json.Marshal(JSONOut{
+			Type:  f.metricType,
+			Unit:  f.unit,
+			Invalid: true,
+		})
+	}
 	return json.Marshal(
 		JSONOut{
 			Type:  f.metricType,
 			Unit:  f.unit,
-			Value: f.backend.Value(),
+			Value: v,
 		})
 }
 func (f *MetricFloatBackend) Update(value interface{}) (err error) {
