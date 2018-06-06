@@ -131,9 +131,8 @@ func RegisterGcStats(t ...time.Duration) {
 		interval = t[0]
 	}
 	// make sure metrics actually exist in registry at the moment of exit
-	stats := &runtime.MemStats{}
 	gcCount, _ := GlobalRegistry.Register(`gc.count`, NewRawCounter())
-	gcPause, _ := GlobalRegistry.Register(`gc.pause`, NewRawCounterFloat("duration"))
+	gcPause, _ := GlobalRegistry.Register(`gc.pause`, NewRawCounterFloat("milliseconds"))
 	gcCPUPercentage, _ := GlobalRegistry.Register(`gc.cpu`, NewEWMA(time.Minute, "percent"))
 	mallocCount, _ := GlobalRegistry.Register(`gc.malloc`, NewRawCounter())
 	freeCount, _ := GlobalRegistry.Register(`gc.free`, NewRawCounter())
@@ -145,13 +144,14 @@ func RegisterGcStats(t ...time.Duration) {
 	mcacheInuse, _ := GlobalRegistry.Register(`gc.mcache_inuse`, NewEWMA(time.Minute, "bytes"))
 	heapObj, _ := GlobalRegistry.Register(`gc.heap_obj`, NewEWMA(time.Minute, "count"))
 	go func() {
+		stats := &runtime.MemStats{}
 		for {
 			runtime.ReadMemStats(stats)
 			gcCount.Update(stats.NumGC)
-			gcPause.Update(float64(stats.PauseTotalNs) / 1000000000)
+			gcPause.Update(float64(stats.PauseTotalNs) / 1000000)
 			gcCPUPercentage.Update(stats.GCCPUFraction*100)
-			mallocCount.Update(stats.Mallocs)
-			freeCount.Update(stats.Frees)
+			mallocCount.Update(WrapUint64Counter(stats.Mallocs))
+			freeCount.Update(WrapUint64Counter(stats.Frees))
 			heapAlloc.Update(stats.HeapAlloc)
 			heapIdle.Update(stats.HeapIdle)
 			heapInuse.Update(stats.HeapInuse)

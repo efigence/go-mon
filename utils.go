@@ -4,6 +4,7 @@ import (
 	"os"
 	"net"
 	"strings"
+	"math"
 )
 
 func getFQDN() string {
@@ -41,4 +42,12 @@ func getFQDN() string {
 		}
 	}
 	return hostname
+}
+// Wraps unsigned 64 bit counter to 64 signed one, on zero
+func WrapUint64Counter(i uint64) (o int64) {
+	if i <= math.MaxInt64 {
+		return int64(i)
+	} else {
+		return int64(i) + math.MaxInt64 + 1
+	}
 }

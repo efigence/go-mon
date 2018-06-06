@@ -24,7 +24,7 @@ type Metric interface {
 	//	json.Marshaler
 }
 
-// Return int64 or coversion error
+// Return int64 or conversion error
 func Int64OrError(value interface{}) (int64, error) {
 	switch v := value.(type) {
 	case int64:
