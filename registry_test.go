@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"runtime"
 )
 
 func TestDummy(t *testing.T) {
@@ -21,4 +22,11 @@ func BenchmarkRegistry_GetRegistry(b *testing.B) {
 	for n := 0; n < b.N; n++ {
                 GlobalRegistry.GetRegistry()
         }
+}
+
+func BenchmarkMemstat(b *testing.B) {
+	stats := &runtime.MemStats{}
+	for n := 0; n < b.N; n++ {
+		runtime.ReadMemStats(stats)
+	}
 }

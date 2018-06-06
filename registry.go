@@ -124,32 +124,61 @@ func (r *Registry) MustRegister(name string, metric Metric) Metric {
 	r.Metrics[name] = metric
 	return metric
 }
+// Register GC and memory stats under 'gc.'
+// will noop if called more than one
+//
+// Probing occurs 3x the interval and some stats (like memory
 
-func RegisterGcStats(t ...time.Duration) {
+
+var globalGcStatsRegistered bool
+
+// GcStats configuration. Interval is time between probes, average turns on EWMA on most stats with 5x interval as half-life
+type GcStatsConfig struct {
+	Interval time.Duration
+	Average bool
+}
+
+func RegisterGcStats(c ...GcStatsConfig) {
+	if globalGcStatsRegistered {return}
 	interval := time.Second * 10
-	if len(t) > 0 {
-		interval = t[0]
+	EWMAHalfLife := interval * 5
+	average := false
+
+
+	if len(c) > 0 {
+		if c[0].Interval > 0 {
+			interval = c[0].Interval
+		}
+		average = c[0].Average
 	}
-	// make sure metrics actually exist in registry at the moment of exit
-	gcCount, _ := GlobalRegistry.Register(`gc.count`, NewRawCounter())
-	gcPause, _ := GlobalRegistry.Register(`gc.pause`, NewRawCounterFloat("milliseconds"))
-	gcCPUPercentage, _ := GlobalRegistry.Register(`gc.cpu`, NewEWMA(time.Minute, "percent"))
-	mallocCount, _ := GlobalRegistry.Register(`gc.malloc`, NewRawCounter())
-	freeCount, _ := GlobalRegistry.Register(`gc.free`, NewRawCounter())
-	heapAlloc, _ := GlobalRegistry.Register(`gc.heap_alloc`, NewEWMA(time.Minute, "bytes"))
-	heapIdle, _ := GlobalRegistry.Register(`gc.heap_idle`, NewEWMA(time.Minute, "bytes"))
-	heapInuse, _ := GlobalRegistry.Register(`gc.heap_inuse`, NewEWMA(time.Minute, "bytes"))
-	stackInuse, _ := GlobalRegistry.Register(`gc.stack_inuse`, NewEWMA(time.Minute, "bytes"))
-	mspanInuse, _ := GlobalRegistry.Register(`gc.mspan_inuse`, NewEWMA(time.Minute, "bytes"))
-	mcacheInuse, _ := GlobalRegistry.Register(`gc.mcache_inuse`, NewEWMA(time.Minute, "bytes"))
-	heapObj, _ := GlobalRegistry.Register(`gc.heap_obj`, NewEWMA(time.Minute, "count"))
+
+	NewGaugeFunc := func(unit ...string) Metric {
+		return NewRawGauge(unit...)
+	}
+	if average {
+		NewGaugeFunc = func(unit ...string) Metric {
+			return NewEWMA(EWMAHalfLife, unit...)
+		}
+	}
+	gcCount := GlobalRegistry.MustRegister(`gc.count`, NewRawCounter())
+	gcPause := GlobalRegistry.MustRegister(`gc.pause`, NewRawCounterFloat("ns"))
+	gcCPUPercentage := GlobalRegistry.MustRegister(`gc.cpu`, NewRawGauge("percent"))
+	mallocCount := GlobalRegistry.MustRegister(`gc.malloc`, NewRawCounter())
+	freeCount := GlobalRegistry.MustRegister(`gc.free`, NewRawCounter())
+	heapAlloc := GlobalRegistry.MustRegister(`gc.heap_alloc`, NewGaugeFunc("bytes"))
+	heapIdle := GlobalRegistry.MustRegister(`gc.heap_idle`, NewGaugeFunc("bytes"))
+	heapInuse := GlobalRegistry.MustRegister(`gc.heap_inuse`, NewGaugeFunc("bytes"))
+	heapObj := GlobalRegistry.MustRegister(`gc.heap_obj`, NewGaugeFunc())
+	stackInuse := GlobalRegistry.MustRegister(`gc.stack_inuse`, NewGaugeFunc("bytes"))
+	mspanInuse := GlobalRegistry.MustRegister(`gc.mspan_inuse`, NewGaugeFunc("bytes"))
+	mcacheInuse := GlobalRegistry.MustRegister(`gc.mcache_inuse`, NewGaugeFunc("bytes"))
 	go func() {
 		stats := &runtime.MemStats{}
 		for {
 			runtime.ReadMemStats(stats)
 			gcCount.Update(stats.NumGC)
-			gcPause.Update(float64(stats.PauseTotalNs) / 1000000)
-			gcCPUPercentage.Update(stats.GCCPUFraction*100)
+			gcPause.Update(WrapUint64Counter(stats.PauseTotalNs))
+			gcCPUPercentage.Update(stats.GCCPUFraction * 100)
 			mallocCount.Update(WrapUint64Counter(stats.Mallocs))
 			freeCount.Update(WrapUint64Counter(stats.Frees))
 			heapAlloc.Update(stats.HeapAlloc)
