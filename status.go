@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+
 const StateInvalid = 0
 const StateOk = 1
 const StateWarning = 2
