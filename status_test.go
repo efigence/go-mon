@@ -2,6 +2,7 @@ package mon
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -14,20 +15,19 @@ func TestSummaryMessage(t *testing.T) {
 	c5, _ := s.NewComponent("transcoder")
 
 
-	c1.Update(StateOk, "msg1")
-	c2.Update(StateWarning, "msg2")
-	c3.Update(StateCritical, "msg3")
-	c4.Update(StateUnknown, "msg4")
-	c5.Update(123, "msg5")
+	assert.NoError(t,c1.Update(StateOk, "msg1"))
+	assert.NoError(t,c2.Update(StateWarning, "msg2"))
+	assert.NoError(t,c3.Update(StateCritical, "msg3"))
+	assert.NoError(t,c4.Update(StateUnknown, "msg4"))
+	assert.Error(t,c5.Update(123, "msg5"))
 
-	Convey("ShouldReturnAllMessages", t, func() {
-		So(s.GetMessage(), ShouldContainSubstring, "msg1")
-		So(s.GetMessage(), ShouldContainSubstring, "msg2")
-		So(s.GetMessage(), ShouldContainSubstring, "msg3")
-		So(s.GetMessage(), ShouldContainSubstring, "msg4")
-		So(s.GetMessage(), ShouldContainSubstring, "msg5")
-		So(s.GetState(), ShouldEqual,StateCritical)
-	})
+	assert.Contains(t,s.GetMessage(), "msg1")
+	assert.Contains(t,s.GetMessage(), "msg2")
+	assert.Contains(t,s.GetMessage(), "msg3")
+	assert.Contains(t,s.GetMessage(), "msg4")
+	assert.NotContains(t,s.GetMessage(), "msg5")
+	assert.Equal(t,s.GetState() ,StateCritical)
+
 }
 
 func TestSummaryState(t *testing.T) {
@@ -68,7 +68,7 @@ func TestBadInput(t *testing.T) {
 	Convey("Do not allow updating status with children",t,func() {
 		So(err3,ShouldNotBeNil)
 	})
-	err4 := c1.Update(666,"badState")
+	err4 := c1.Update(234,"badState")
 	Convey("Do not allow updating with state code out of range",t,func() {
 		So(err4,ShouldNotBeNil)
 	})

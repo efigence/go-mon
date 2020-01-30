@@ -3,28 +3,30 @@ package mon
 import (
 	"fmt"
 	"strings"
-	"time"
-	"math"
 	"sync"
+	"time"
 )
 
 
-const StateInvalid = 0
-const StateOk = 1
-const StateWarning = 2
-const StateCritical = 3
-const StateUnknown = 4
+type State uint8
 
-const Invalid = 0
-const Ok = 1
-const Warning = 2
-const Critical = 3
-const Unknown = 4
+const StateInvalid = State(0)
+const StateOk = State(1)
+const StateWarning = State(2)
+const StateCritical = State(3)
+const StateUnknown = State(4)
+const stateEnd = State(5)
+
+const Invalid = State(0)
+const Ok = State(1)
+const Warning = State(2)
+const Critical = State(3)
+const Unknown = State(4)
 
 
 // Status forms hierarchical structure. Parent status code and message is always generated from status of children so running update on it is pointless
 type Status struct {
-	State uint8 `json:"state"`
+	State State `json:"state"`
 	// Canonical service name (required)
 	Name string `json:"name"`
 	// FQDN
@@ -44,7 +46,7 @@ type Status struct {
 	Ts time.Time `json:"ts"`
 	Components map[string]*Status `json:"components,nonempty"`
 	// function used to generate status and message from underlying components
-	summaryState func(*map[string]*Status)(state uint8)
+	summaryState func(*map[string]*Status)(state State)
 	summaryMessage func(*map[string]*Status)(message string)
 	sync.RWMutex
 }
@@ -67,17 +69,17 @@ func NewStatus(name string, p ...string) *Status {
 	return &s
 }
 
-func (s *Status)Update(status int, message string) error {
+func (s *Status)Update(status State, message string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if status > math.MaxUint8 || status < 0 {
+	if status > stateEnd || status < 0 {
 		return fmt.Errorf("status[%d] outside of range", status)
 	}
 	if len(s.Components) > 0 {
 		return fmt.Errorf("status[%s] have %d children nodes[], updating parent is pointless",s.Name,len(s.Components))
 	}
-	s.State = uint8(status)
+	s.State = State(status)
 	s.Msg = message
 	if s.State == StateOk { s.Ok = true }
 	return nil
@@ -106,7 +108,7 @@ func (s *Status)GetMessage() string{
 }
 
 // update and return message
-func (s *Status)GetState() uint8{
+func (s *Status)GetState() State{
 	s.RLock()
 	defer s.RUnlock()
 
@@ -117,7 +119,7 @@ func (s *Status)GetState() uint8{
 }
 
 // SummarizeStatusState returns highest ( critical>unknown>warning>ok ) state of underlying status map
-func SummarizeStatusState(component *map[string]*Status)(state uint8) {
+func SummarizeStatusState(component *map[string]*Status)(state State) {
 	for _, c := range *component {
 		switch {
 		// Critical state is always most important one to report; nothing to do after if we find one
