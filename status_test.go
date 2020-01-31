@@ -63,7 +63,7 @@ func TestCreation(t *testing.T) {
 }
 func TestBadInput(t *testing.T) {
 	s := NewStatus("testStatus","with long name","and description")
-	c1, _ := s.NewComponent("db","some db")
+	c1 := s.MustNewComponent("db","some db")
 	err3 := s.Update(StateOk, "some message")
 	Convey("Do not allow updating status with children",t,func() {
 		So(err3,ShouldNotBeNil)
@@ -72,6 +72,9 @@ func TestBadInput(t *testing.T) {
 	Convey("Do not allow updating with state code out of range",t,func() {
 		So(err4,ShouldNotBeNil)
 	})
+	assert.Panics(t, func () {s.MustUpdate(222,"test")})
+	assert.Panics(t, func () {s.MustNewComponent("db")})
+
 }
 
 func TestFormatters(t *testing.T) {

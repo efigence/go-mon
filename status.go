@@ -33,7 +33,7 @@ type Status struct {
 	FQDN string `json:"fqdn"`
 	// Pretty display name of service
 	DisplayName string `json:"display_name,nonempty"`
-	// Description of serive
+	// Description of service
 	Description string `json:"description,nonempty"`
 	// status check message
 	Msg string `json:"msg"`
@@ -55,6 +55,9 @@ type Status struct {
 
 
 // NewStatus creates new status object with state set to unknown
+// optional parameters are
+// * display name
+// * description
 func NewStatus(name string, p ...string) *Status {
 	var s Status
 	s.Name = name
@@ -65,10 +68,9 @@ func NewStatus(name string, p ...string) *Status {
 	s.Ok = false
 	s.summaryMessage = SummarizeStatusMessage
 	s.summaryState = SummarizeStatusState
-
 	return &s
 }
-
+// Update updates state of the Status component. It should be used only on component with no children or else it will err out
 func (s *Status)Update(status State, message string) error {
 	s.Lock()
 	defer s.Unlock()
@@ -82,10 +84,25 @@ func (s *Status)Update(status State, message string) error {
 	s.State = State(status)
 	s.Msg = message
 	if s.State == StateOk { s.Ok = true }
+	s.Ts = time.Now()
 	return nil
 }
 
+// MustUpdate runs Update and panics on error
+//
 
+func (s *Status)MustUpdate(status State, message string) {
+	err := s.Update(status,message)
+	if err != nil {
+		panic(fmt.Sprintf("updating component %s failed: %s", s.Name,err))
+	}
+
+}
+
+// NewComponent adds a new child component to the Status
+// optional parameters are
+// * display name
+// * description
 func (s *Status)NewComponent(name string, p ...string) (*Status, error) {
 	s.Lock()
 	defer s.Unlock()
@@ -96,6 +113,14 @@ func (s *Status)NewComponent(name string, p ...string) (*Status, error) {
 	s.Components[name] = NewStatus(name, p...)
 	return s.Components[name], nil
 }
+
+func (s *Status)MustNewComponent(name string, p ... string) (*Status) {
+	c, err := s.NewComponent(name, p...)
+	if err != nil {
+		panic(fmt.Sprintf("error when creating new component %s: %s",name, err))
+	}
+	return c
+}
 // update and return message
 func (s *Status)GetMessage() string{
 	s.RLock()
@@ -103,6 +128,11 @@ func (s *Status)GetMessage() string{
 
 	if len(s.Components) > 0 {
 		s.Msg =  s.summaryMessage(&s.Components)
+		for _, v :=  range s.Components {
+			if v.Ts.After(s.Ts) {
+				s.Ts = v.Ts
+			}
+		}
 	}
 	return s.Msg
 }
