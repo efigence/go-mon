@@ -128,6 +128,7 @@ func (s *Status)GetMessage() string{
 
 	if len(s.Components) > 0 {
 		s.Msg =  s.summaryMessage(&s.Components)
+		// FIXME that should be called in reverse relation, child updating parent
 		for _, v :=  range s.Components {
 			if v.Ts.After(s.Ts) {
 				s.Ts = v.Ts

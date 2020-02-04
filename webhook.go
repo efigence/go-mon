@@ -8,6 +8,7 @@ import (
 // HandleMetrics is basic web hook that returns JSON dump of metrics in GlobalRegistry
 func HandleMetrics( w http.ResponseWriter, req *http.Request) {
 	js, err := json.Marshal(GlobalRegistry.GetRegistry())
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		w.Write([]byte(`{"msg":"JSON marshalling error"}`))
 	} else {
