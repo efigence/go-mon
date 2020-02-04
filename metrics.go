@@ -85,9 +85,18 @@ func (c *counterBackend) Value() int64 {
 }
 
 // New counter. Updating it will INCREMENT internal counter. If you want to just set a value directly, use NewRawCounter() instead. Overflows to zero
-func NewCounter() Metric {
-	return &MetricIntBackend{
+func NewCounter(unit ...string) Metric {
+	metric :=  &MetricIntBackend{
 		metricType: MetricTypeCounter,
 		backend:    &counterBackend{},
 	}
+	if len(unit) > 0 {
+		metric.unit = unit[0]
+	}
+	return metric
+}
+
+// NewGauge returns float gauge.
+func NewGauge(unit ...string) Metric {
+	return NewRawGauge(unit...)
 }

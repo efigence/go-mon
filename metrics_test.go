@@ -3,6 +3,8 @@ package mon
 import (
 	"encoding/json"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+
 	"testing"
 	"time"
 )
@@ -68,5 +70,20 @@ func TestCounter(t *testing.T) {
 		So(errUpd4, ShouldEqual, nil)
 		So(ctr.Value(), ShouldEqual, 0)
 	})
+}
+
+func TestGauge(t *testing.T) {
+	gauge := NewGauge("testUnit")
+	gauge.Update(323)
+	assert.Equal(t,323.0,gauge.Value(),)
+	gauge.Update(123)
+	assert.Equal(t,123.0,gauge.Value(),)
+	assert.Equal(t,"testUnit",gauge.Unit())
+	gaugeUnitless := NewGauge()
+	gaugeUnitless.Update(32)
+	assert.Equal(t,32.0,gaugeUnitless.Value(),)
+	gaugeUnitless.Update(432)
+	assert.Equal(t,432.0,gaugeUnitless.Value(),)
+	assert.Equal(t,"",gaugeUnitless.Unit())
 
 }
