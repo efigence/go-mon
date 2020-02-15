@@ -2,9 +2,12 @@ package mon
 
 import (
 	"net/http"
-    "net/http/httptest"
-	. "github.com/smartystreets/goconvey/convey"
+	"net/http/httptest"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMetricsHandler(t *testing.T) {
@@ -81,9 +84,7 @@ func TestStatusHandler(t *testing.T) {
 	// change status to critical
 	GlobalStatus.Update(StatusCritical,"service-failed")
 	req, err = http.NewRequest("GET", "/health", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t,err)
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(HandleHealthcheck)
 	handler.ServeHTTP(rr, req)
@@ -96,5 +97,108 @@ func TestStatusHandler(t *testing.T) {
 	Convey("Output message for OK", t, func() {
 		So(rr.Body.String(), ShouldContainSubstring, `service-failed`)
 	})
+}
 
+func TestHandleHaproxyState_Up(t *testing.T) {
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	require.NoError(t,err)
+	req.Header.Add(
+		"X-Haproxy-Server-State",
+		"UP 2/3; name=bck/srv2; node=lb1; weight=1/2; scur=13/22; qcur=6",
+	)
+	var state HaproxyState
+	var stateErr error
+	var stateFound bool
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func ( w http.ResponseWriter, req *http.Request) {
+		state, stateFound, stateErr = HandleHaproxyState(req)
+	})
+	handler.ServeHTTP(rr, req)
+
+	assert.True(t,stateFound,"haproxy header")
+	assert.NoError(t,stateErr)
+	assert.Equal(t,"bck",state.BackendName,"backend name")
+	assert.Equal(t,"srv2",state.ServerName,"server name")
+	assert.Equal(t,"lb1",state.LBNodeName,"LB name")
+	assert.Equal(t,1,state.ServerWeight,"current server weight")
+	assert.Equal(t,2,state.TotalWeight,"backend weight sum")
+	assert.Equal(t,13,state.ServerCurrentConnections,"server connection count")
+	assert.Equal(t,22,state.BackendCurrentConnections,"backend connection count")
+	assert.Equal(t,6,state.Queue,"queue to server")
+	assert.False(t,state.SafeToStop(),"not safe to stop")
+}
+func TestHandleHaproxyState_Down(t *testing.T) {
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	require.NoError(t,err)
+	req.Header.Add(
+		"X-Haproxy-Server-State",
+		"DOWN 2/3; name=bck/srv2; node=lb1; weight=1/2; scur=0/22; qcur=0",
+	)
+	var state HaproxyState
+	var stateErr error
+	var stateFound bool
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func ( w http.ResponseWriter, req *http.Request) {
+		state, stateFound, stateErr = HandleHaproxyState(req)
+	})
+	handler.ServeHTTP(rr, req)
+
+	assert.True(t,stateFound,"haproxy header")
+	assert.NoError(t,stateErr)
+	assert.Equal(t,"bck",state.BackendName,"backend name")
+	assert.Equal(t,"srv2",state.ServerName,"server name")
+	assert.Equal(t,"lb1",state.LBNodeName,"LB name")
+	assert.Equal(t,1,state.ServerWeight,"current server weight")
+	assert.Equal(t,2,state.TotalWeight,"backend weight sum")
+	assert.Equal(t,0,state.ServerCurrentConnections,"server connection count")
+	assert.Equal(t,22,state.BackendCurrentConnections,"backend connection count")
+	assert.Equal(t,0,state.Queue,"queue to server")
+	assert.True(t,state.SafeToStop(),"safe to stop")
+}
+
+func TestHandleHaproxyState_Empty(t *testing.T) {
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	require.NoError(t,err)
+	var state HaproxyState
+	var stateErr error
+	var stateFound bool
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(func ( w http.ResponseWriter, req *http.Request) {
+		state, stateFound, stateErr = HandleHaproxyState(req)
+	})
+	handler.ServeHTTP(rr, req)
+
+	assert.False(t,stateFound,"haproxy header")
+	assert.NoError(t,stateErr)
+	assert.True(t,state.SafeToStop(),"safe to stop")
+}
+
+func TestHandleHealthchecksHaproxy(t *testing.T) {
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	require.NoError(t,err)
+	req.Header.Add(
+		"X-Haproxy-Server-State",
+		"DOWN 2/3; name=bck/srv2; node=lb1; weight=1/2; scur=0/22; qcur=0",
+	)
+	GlobalStatus.Update(StatusOk,"service-running")
+	checkHandler, haproxyStatus := HandleHealthchecksHaproxy()
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(checkHandler)
+	handler.ServeHTTP(rr, req)
+
+	haproxyStatus.RLock()
+	defer haproxyStatus.RUnlock()
+	assert.True(t,haproxyStatus.Found,"haproxy header")
+	assert.Equal(t,"bck",haproxyStatus.BackendName,"backend name")
+	assert.Equal(t,"srv2",haproxyStatus.ServerName,"server name")
+	assert.Equal(t,"lb1",haproxyStatus.LBNodeName,"LB name")
+	assert.Equal(t,1,haproxyStatus.ServerWeight,"current server weight")
+	assert.Equal(t,2,haproxyStatus.TotalWeight,"backend weight sum")
+	assert.Equal(t,0,haproxyStatus.ServerCurrentConnections,"server connection count")
+	assert.Equal(t,22,haproxyStatus.BackendCurrentConnections,"backend connection count")
+	assert.Equal(t,0,haproxyStatus.Queue,"queue to server")
+	assert.True(t,haproxyStatus.SafeToStop(),"safe to stop")
+	assert.Equal(t,http.StatusOK,rr.Code,"status OK")
+	assert.Contains(t,rr.Body.String(),`"state":1`,"state body")
+	assert.Contains(t,rr.Body.String(),"service-running")
 }
