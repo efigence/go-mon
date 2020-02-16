@@ -52,7 +52,7 @@ func TestSummaryState(t *testing.T) {
 
 func TestCreation(t *testing.T) {
 	s := NewStatus("testStatus","with long name","and description")
-	_, err1 := s.NewComponent("db")
+	db, err1 := s.NewComponent("db")
 	Convey("Create status with component",t,func() {
 		So(err1,ShouldBeNil)
 	})
@@ -60,6 +60,8 @@ func TestCreation(t *testing.T) {
 	Convey("do not allow double create",t,func() {
 		So(err2,ShouldNotBeNil)
 	})
+	db.Update(Ok,"state OK")
+	assert.Equal(t,Ok,s.GetState())
 }
 func TestBadInput(t *testing.T) {
 	s := NewStatus("testStatus","with long name","and description")
@@ -88,3 +90,4 @@ func TestFormatters(t *testing.T) {
 	})
 
 }
+

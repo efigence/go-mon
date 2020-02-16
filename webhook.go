@@ -24,7 +24,7 @@ func HandleMetrics( w http.ResponseWriter, req *http.Request) {
 func HandleHealthcheck ( w http.ResponseWriter, req *http.Request) {
 	var httpStatus int
 	w.Header().Set("Content-Type", "application/json")
-	switch GlobalStatus.State {
+	switch GlobalStatus.GetState() {
 	case StateOk:
 		httpStatus =  http.StatusOK
 	case StateWarning:
@@ -37,7 +37,6 @@ func HandleHealthcheck ( w http.ResponseWriter, req *http.Request) {
 		httpStatus =  http.StatusServiceUnavailable
 	}
 	js, err := json.Marshal(GlobalStatus)
-
 	if httpStatus != http.StatusOK {
 		http.Error(w, "server error", httpStatus)
 	} else if err != nil {
