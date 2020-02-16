@@ -37,10 +37,11 @@ func HandleHealthcheck ( w http.ResponseWriter, req *http.Request) {
 		httpStatus =  http.StatusServiceUnavailable
 	}
 	js, err := json.Marshal(GlobalStatus)
-	if httpStatus != http.StatusOK {
-		http.Error(w, "server error", httpStatus)
-	} else if err != nil {
+	if err != nil {
 		http.Error(w, err.Error(), httpStatus)
+		return
+	} else if httpStatus != http.StatusOK {
+		w.WriteHeader(httpStatus)
 	}
 	w.Write(js)
 }
