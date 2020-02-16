@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // HandleMetrics is basic web hook that returns JSON dump of metrics in GlobalRegistry
@@ -46,6 +47,32 @@ func HandleHealthcheck ( w http.ResponseWriter, req *http.Request) {
 	w.Write(js)
 }
 
+// haproxy-specific handler, there is a mode where 404 means "switch backend into NOLB mode"
+func handleHealthcheckHaproxy ( w http.ResponseWriter, req *http.Request) {
+	var httpStatus int
+	w.Header().Set("Content-Type", "application/json")
+	switch GlobalStatus.GetState() {
+	case StateOk:
+		httpStatus =  http.StatusOK
+	case StateWarning:
+		httpStatus =  http.StatusNotFound
+	case StateUnknown:
+		httpStatus =  http.StatusInternalServerError
+	case StateInvalid:
+		httpStatus =  http.StatusInternalServerError
+	default:
+		httpStatus =  http.StatusServiceUnavailable
+	}
+	js, err := json.Marshal(GlobalStatus)
+	if err != nil {
+		http.Error(w, err.Error(), httpStatus)
+		return
+	} else if httpStatus != http.StatusOK {
+		w.WriteHeader(httpStatus)
+	}
+	w.Write(js)
+}
+
 
 
 type HaproxyState struct {
@@ -63,6 +90,7 @@ type HaproxyState struct {
 	Queue int
 	// whether header was found
 	Found bool
+	TS time.Time
 	sync.RWMutex
 }
 // SafeToStop returns whether it is safe to shutdown the server.
@@ -83,9 +111,12 @@ func (s *HaproxyState) SafeToStop() bool {
 	return false
 }
 
-func (s *HaproxyState) copy(new HaproxyState) {
+func (s *HaproxyState) update(new HaproxyState) {
 	s.Lock()
 	defer s.Unlock()
+	// do not update if state is fresh and we haven't found a header in new version
+	if s.Found && !new.Found && time.Now().Sub(new.TS) < time.Minute { return }
+
 	s.State = new.State
 	s.BackendName = new.BackendName
 	s.ServerName = new.ServerName
@@ -96,12 +127,14 @@ func (s *HaproxyState) copy(new HaproxyState) {
 	s.BackendCurrentConnections = new.BackendCurrentConnections
 	s.Found = new.Found
 	s.Queue = new.Queue
+	s.TS = new.TS
 }
 // HandleHaproxyState parses haproxy state header and returns current backend state
 //
 // Example header:  X-Haproxy-Server-State: UP 2/3; name=bck/srv2; node=lb1; weight=1/2; scur=13/22; qcur=
 func HandleHaproxyState ( req *http.Request) (haproxyState HaproxyState, found bool, err error) {
 	var s HaproxyState
+	s.TS = time.Now()
 	stateSlice := strings.Split(req.Header.Get("X-Haproxy-Server-State"), ";")
 	if len(stateSlice) < 2 { return }
 	if strings.Contains(stateSlice[0],"UP") {
@@ -166,15 +199,23 @@ func HandleHaproxyState ( req *http.Request) (haproxyState HaproxyState, found b
 }
 
 // HandleHealthchecksHaproxy returns GlobalStatus with appropriate HTTP code and handles X-Haproxy-Server-State header
-func HandleHealthchecksHaproxy() (handlerFunc func ( w http.ResponseWriter, req *http.Request), haproxyState *HaproxyState) {
+func HandleHealthchecksHaproxy(emit404OnWarning ...bool) (handlerFunc func ( w http.ResponseWriter, req *http.Request), haproxyState *HaproxyState) {
 	var state = &HaproxyState{}
-	return func ( w http.ResponseWriter, req *http.Request) {
-		newState, _, err := HandleHaproxyState(req)
-		if err == nil {
-			state.copy(newState)
-		} else {
-			state.copy(HaproxyState{})
-		}
-		HandleHealthcheck (w,req)
-	}, state
+	if len(emit404OnWarning) >= 1 && emit404OnWarning[0] {
+		return func(w http.ResponseWriter, req *http.Request) {
+			newState, _, err := HandleHaproxyState(req)
+			if err == nil {
+				state.update(newState)
+			}
+			handleHealthcheckHaproxy(w, req)
+		}, state
+	} else {
+		return func(w http.ResponseWriter, req *http.Request) {
+			newState, _, err := HandleHaproxyState(req)
+			if err == nil {
+				state.update(newState)
+			}
+			HandleHealthcheck(w, req)
+		}, state
+	}
 }

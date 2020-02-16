@@ -181,7 +181,7 @@ func TestHandleHealthchecksHaproxy(t *testing.T) {
 		"DOWN 2/3; name=bck/srv2; node=lb1; weight=1/2; scur=0/22; qcur=0",
 	)
 	GlobalStatus.Update(StatusOk,"service-running")
-	checkHandler, haproxyStatus := HandleHealthchecksHaproxy()
+	checkHandler, haproxyStatus := HandleHealthchecksHaproxy(true)
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(checkHandler)
 	handler.ServeHTTP(rr, req)
