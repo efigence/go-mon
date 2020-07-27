@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"encoding/json"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -58,8 +59,11 @@ func TestStatusHandler(t *testing.T) {
 	Convey("Status Code for unknown", t, func() {
 		So(rr.Code, ShouldEqual, http.StatusInternalServerError)
 	})
+	var s1 Status
+	err = json.Unmarshal(rr.Body.Bytes(),&s1)
 	Convey("Output Data for unknown", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, `"state":4`)
+		So(err,ShouldBeNil)
+		So(s1.State,ShouldEqual,StatusUnknown)
 	})
 
 	// change status to OK
@@ -71,11 +75,14 @@ func TestStatusHandler(t *testing.T) {
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(HandleHealthcheck)
 	handler.ServeHTTP(rr, req)
+	var s2 Status
+	err = json.Unmarshal(rr.Body.Bytes(),&s2)
 	Convey("Status Code for OK", t, func() {
 		So(rr.Code, ShouldEqual, http.StatusOK)
 	})
 	Convey("Output Data for OK", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, `"state":1`)
+		So(err,ShouldBeNil)
+		So(s2.State, ShouldEqual,StatusOk)
 	})
 	Convey("Output message for OK", t, func() {
 		So(rr.Body.String(), ShouldContainSubstring, `service-running`)
@@ -88,11 +95,14 @@ func TestStatusHandler(t *testing.T) {
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(HandleHealthcheck)
 	handler.ServeHTTP(rr, req)
+	var s3 Status
+	err = json.Unmarshal(rr.Body.Bytes(),&s3)
 	Convey("Status Code for OK", t, func() {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
 	})
 	Convey("Output Data for OK", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, `"state":3`)
+		So(err,ShouldBeNil)
+		So(s3.State,ShouldEqual,StatusCritical)
 	})
 	Convey("Output message for OK", t, func() {
 		So(rr.Body.String(), ShouldContainSubstring, `service-failed`)
