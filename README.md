@@ -33,7 +33,29 @@ http.Handle("/_status/health", mon.HandleHealthcheck)
 http.Handle("/_status/metrics", mon.HandleMetrics)
 ```
 
-and returning JSON for metrics:
+If your app requires graceful stop, HAPRoxy's `http-check send-state` is also supported:
+
+```go
+// publish and handle haproxy's "X-Haproxy-Server-State"
+healthcheckHandler, haproxyStatus := mon.HandleHealthchecksHaproxy()
+http.Handle("/_status/health", healthcheckHandler)
+// prepare to stop
+mon.GlobalStatus.Update(mon.Warning,"shutting down")
+// then check whether you can shutdown server gracefully (i.e. haproxy marked it as down and we have no ongoing connections)
+for i := 1; i <= 10; i++ {
+    if haproxyStatus.SafeToStop() {
+        os.Exit(0)
+    } else {
+        // waiting for connections to finish
+        time.Sleep(time.Second * 3)
+    }
+}
+// and exit if it takes more than 30s as we do not expect normal requests to take that long.
+os.Exit(0)
+
+```
+
+Returning JSON for metrics:
 
 ```json
 {
@@ -118,7 +140,7 @@ and returning JSON for metrics:
   "ts": "2020-01-31T18:09:18.700941258+01:00"
 ```
 
-and for status:
+Status:
 
 ```json
 {

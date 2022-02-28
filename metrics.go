@@ -36,6 +36,7 @@ func NewEWMA(halflife time.Duration, unit ...string) Metric {
 type ewmaRateBackend struct {
 	ewma *ewma.EwmaRate
 }
+
 // Update rate counter. Value is ignored, each Update() call is one "request" for rate calculation
 func (e *ewmaRateBackend) Update(u float64) {
 	e.ewma.UpdateNow()
@@ -86,7 +87,7 @@ func (c *counterBackend) Value() int64 {
 
 // New counter. Updating it will INCREMENT internal counter. If you want to just set a value directly, use NewRawCounter() instead. Overflows to zero
 func NewCounter(unit ...string) Metric {
-	metric :=  &MetricIntBackend{
+	metric := &MetricIntBackend{
 		metricType: MetricTypeCounter,
 		backend:    &counterBackend{},
 	}
@@ -99,4 +100,16 @@ func NewCounter(unit ...string) Metric {
 // NewGauge returns float gauge.
 func NewGauge(unit ...string) Metric {
 	return NewRawGauge(unit...)
+}
+
+// NewRelativeIntegerGauge creates integer gauge that will add or remove number passed by Update() function to state
+func NewRelativeIntegerGauge(unit ...string) Metric {
+	metric := &MetricIntBackend{
+		metricType: MetricTypeGaugeInt,
+		backend:    &counterBackend{canBeNegative: true},
+	}
+	if len(unit) > 0 {
+		metric.unit = unit[0]
+	}
+	return metric
 }

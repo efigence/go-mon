@@ -30,11 +30,11 @@ type Status struct {
 	// Canonical service name (required)
 	Name string `json:"name"`
 	// FQDN
-	FQDN string `json:"fqdn"`
+	FQDN string `json:"fqdn,omitempty"`
 	// Pretty display name of service
-	DisplayName string `json:"display_name,nonempty"`
+	DisplayName string `json:"display_name,omitempty"`
 	// Description of service
-	Description string `json:"description,nonempty"`
+	Description string `json:"description,omitempty"`
 	// status check message
 	Msg string `json:"msg"`
 	// data format initialization canary.
@@ -44,7 +44,7 @@ type Status struct {
 	// Other function is to allow just checking one bool flag to decide if it is ok or not
 	Ok bool `json:"ok"`
 	Ts time.Time `json:"ts"`
-	Components map[string]*Status `json:"components,nonempty"`
+	Components map[string]*Status `json:"components,omitempty"`
 	// function used to generate status and message from underlying components
 	summaryState func(*map[string]*Status)(state State)
 	summaryMessage func(*map[string]*Status)(message string)
