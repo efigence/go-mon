@@ -48,6 +48,10 @@ type Status struct {
 	summaryMessage func(*map[string]*Status) (message string)
 	//
 	sync.RWMutex
+	// update channel for propagating changes
+	updRecv chan bool
+	updSend *chan bool
+	child   bool
 }
 
 // NewStatus creates new status object with state set to unknown
@@ -55,6 +59,10 @@ type Status struct {
 // * display name
 // * description
 func NewStatus(name string, p ...string) *Status {
+	return newStatus(name, nil, p...)
+}
+
+func newStatus(name string, updateCh chan bool, p ...string) *Status {
 	var s Status
 	s.Name = name
 	if len(p) > 0 {
@@ -68,24 +76,49 @@ func NewStatus(name string, p ...string) *Status {
 	s.Ok = false
 	s.summaryMessage = SummarizeStatusMessage
 	s.summaryState = SummarizeStatusState
+	s.updRecv = make(chan bool, 1)
+	if updateCh != nil {
+		s.updSend = &updateCh
+	}
+	go func() {
+		for _ = range s.updRecv {
+			msg := s.summaryMessage(&s.Components)
+			state := s.summaryState(&s.Components)
+			s.Lock()
+			s.Msg = msg
+			s.State = state
+			s.Ok = state == StateOk
+			s.Ts = time.Now()
+			s.Unlock()
+			if s.updSend != nil {
+				*s.updSend <- true
+			}
+		}
+	}()
 	return &s
 }
 
 // Update updates state of the Status component. It should be used only on component with no children or else it will err out
 func (s *Status) Update(status State, message string) error {
 	s.Lock()
-	defer s.Unlock()
 
 	if status > stateEnd || status < 0 {
+		s.Unlock()
 		return fmt.Errorf("status[%d] outside of range", status)
 	}
 	if len(s.Components) > 0 {
+		s.Unlock()
 		return fmt.Errorf("status[%s] have %d children nodes[], updating parent is pointless", s.Name, len(s.Components))
 	}
-	s.State = State(status)
+	s.State = status
 	s.Msg = message
 	s.Ok = s.State == StateOk
 	s.Ts = time.Now()
+	s.Unlock()
+	if s.updSend != nil {
+		*s.updSend <- true
+	}
+
 	return nil
 }
 
@@ -111,7 +144,7 @@ func (s *Status) NewComponent(name string, p ...string) (*Status, error) {
 	if _, ok := s.Components[name]; ok {
 		return nil, fmt.Errorf("Given component already exists!")
 	}
-	s.Components[name] = NewStatus(name, p...)
+	s.Components[name] = newStatus(name, s.updRecv, p...)
 	return s.Components[name], nil
 }
 
@@ -125,58 +158,47 @@ func (s *Status) MustNewComponent(name string, p ...string) *Status {
 
 // update and return message
 func (s *Status) GetMessage() string {
-	s.RLock()
-	defer s.RUnlock()
-	s.Ok = s.State == StateOk
 	if len(s.Components) > 0 {
-		s.Msg = s.summaryMessage(&s.Components)
-		// FIXME that should be called in reverse relation, child updating parent
-		for _, v := range s.Components {
-			if v.Ts.After(s.Ts) {
-				s.Ts = v.Ts
-			}
-		}
+		return s.summaryMessage(&s.Components)
+	} else {
+		return s.Msg
 	}
-	return s.Msg
 }
 
 // update and return message
 func (s *Status) GetState() State {
-
 	if len(s.Components) > 0 {
-		s.Lock()
-		s.State = s.summaryState(&s.Components)
-		s.Ok = s.State == StateOk
-		s.Unlock()
+		return s.summaryState(&s.Components)
+	} else {
+		s.RLock()
+		defer s.RUnlock()
+		return s.State
 	}
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.State
 }
 
-// Gets updated status
-// that method shoudld be preferred by any hooks as it makes sure all fields that are inherited from children are updated
-// properly
-func (s *Status) GetStatus() Status {
-	s.Lock()
-	defer s.Unlock()
-	s.Ok = s.State == StateOk
-	ret := *s
-	ret.Unlock()
-	return *s
+func (s *Status) GetOK() bool {
+	ok := s.GetState() == StateOk
+	if ok != s.Ok {
+		s.Lock()
+		s.Ok = ok
+		s.Unlock()
+	}
+	return ok
 }
 
 // SummarizeStatusState returns highest ( critical>unknown>warning>ok ) state of underlying status map
 func SummarizeStatusState(component *map[string]*Status) (state State) {
 	for _, c := range *component {
+		c.RLock()
 		switch {
 		// Critical state is always most important one to report; nothing to do after if we find one
 		case c.State == StateCritical:
+			c.RUnlock()
 			return StateCritical
 		case c.State > state:
 			state = c.State
 		}
+		c.RUnlock()
 	}
 	return state
 }
@@ -185,7 +207,9 @@ func SummarizeStatusState(component *map[string]*Status) (state State) {
 func SummarizeStatusMessage(component *map[string]*Status) (message string) {
 	var sCritical, sWarning, sUnknown, sOk []string
 	for _, c := range *component {
-		componentInfo := fmt.Sprintf("[%s]%s", c.Name, c.Msg)
+		c.RLock()
+		componentInfo := fmt.Sprintf("[%s]%s", c.Name, c.GetMessage())
+		c.RUnlock()
 		switch c.State {
 		case StateOk:
 			sOk = append(sOk, componentInfo)
@@ -196,7 +220,6 @@ func SummarizeStatusMessage(component *map[string]*Status) (message string) {
 		default:
 			sUnknown = append(sUnknown, componentInfo)
 		}
-
 	}
 	var outArr []string
 	if len(sCritical) > 0 {
