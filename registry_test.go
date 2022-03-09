@@ -2,26 +2,25 @@ package mon
 
 import (
 	"encoding/json"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
+	"github.com/stretchr/testify/assert"
 	"runtime"
+	"testing"
 )
 
-func TestDummy(t *testing.T) {
+func TestRegisterGcStats(t *testing.T) {
 
 	RegisterGcStats()
-	Convey("Marshal registry", t, func() {
-		m, err := json.Marshal(GlobalRegistry)
-		So(err, ShouldBeNil)
-		So(string(m), ShouldContainSubstring, `"instance"`)
-		So(string(m), ShouldContainSubstring, `"gc.count"`)
-	})
+	m, err := json.Marshal(GlobalRegistry)
+	assert.Nil(t, err)
+
+	assert.Contains(t, string(m), `"instance"`)
+	assert.Contains(t, string(m), `"gc.count"`)
 }
 
 func BenchmarkRegistry_GetRegistry(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-                GlobalRegistry.GetRegistry()
-        }
+		GlobalRegistry.GetRegistry()
+	}
 }
 
 func BenchmarkMemstat(b *testing.B) {

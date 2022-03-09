@@ -1,10 +1,10 @@
 package mon
 
 import (
-	"testing"
-		. "github.com/smartystreets/goconvey/convey"
-	"reflect"
+	"github.com/stretchr/testify/assert"
 	"math"
+	"reflect"
+	"testing"
 	"time"
 )
 
@@ -23,21 +23,18 @@ func TestMetricsCommon(t *testing.T) {
 		uint8(10),
 		float32(10),
 	)
-	Convey("to float64", t, func() {
-
-		for _, t := range testsFloat {
-			_ = t
-			f, err := Float64OrError(t)
-			Convey("from " + reflect.TypeOf(t).Name(), func() {
-				So(err, ShouldBeNil)
-				So(f, ShouldEqual, float64(10))
-			})
+	t.Run("to float", func(t *testing.T) {
+		for _, num := range testsFloat {
+			f, err := Float64OrError(num)
+			typeName := reflect.TypeOf(num).Name()
+			assert.Nil(t, err, typeName)
+			assert.Equal(t, float64(10), f, typeName)
 		}
 	})
+
 	_, err := Float64OrError("sdasd")
-	Convey("from string to float64", t, func() {
-		So(err, ShouldNotBeNil)
-	})
+	assert.Error(t, err)
+
 	var testsInt []interface{}
 	testsInt = append(testsInt,
 		int64(10),
@@ -48,42 +45,34 @@ func TestMetricsCommon(t *testing.T) {
 		uint16(10),
 		uint8(10),
 	)
-	Convey("to int64", t, func() {
-
-		for _, t := range testsInt {
-			_ = t
-			f, err := Int64OrError(t)
-			Convey("from " + reflect.TypeOf(t).Name(), func() {
-				So(err, ShouldBeNil)
-				So(f, ShouldEqual, float64(10))
-			})
+	t.Run("to int64", func(t *testing.T) {
+		for _, ti := range testsInt {
+			_ = ti
+			f, err := Int64OrError(ti)
+			assert.Nil(t, err)
+			assert.Equal(t, int64(10), f, reflect.TypeOf(ti).Name())
 		}
 	})
+
 	_, err = Int64OrError("sdasd")
-	Convey("from string to int64", t, func() {
-		So(err, ShouldNotBeNil)
-	})
+	assert.Error(t, err)
 	_, err = Int64OrError(uint64(10))
-	Convey("from uint64 to int64", t, func() {
-		So(err, ShouldNotBeNil)
-	})
+	assert.Error(t, err)
 	_, err = Int64OrError(float32(10))
-	Convey("from string to int64", t, func() {
-		So(err, ShouldNotBeNil)
-	})
+	assert.Error(t, err)
+
 }
 
 func TestMetricsNaN(t *testing.T) {
 	g := MetricFloat{
 		metricType: "g",
-		value: math.NaN(),
+		value:      math.NaN(),
 	}
 
 	out, err := g.MarshalJSON()
-	Convey("Nil should report as invalid", t, func() {
-		So(err, ShouldBeNil)
-		So(string(out), ShouldContainSubstring,`"invalid":true`)
-	})
+	assert.Nil(t, err)
+	assert.Contains(t, string(out), `"invalid":true`)
+
 }
 
 func BenchmarkEwmaBackend_Update(b *testing.B) {
@@ -101,7 +90,6 @@ func BenchmarkEwmaBackend_Value(b *testing.B) {
 		_ = r.Value()
 	}
 }
-
 
 func BenchmarkMetricInt_Update(b *testing.B) {
 	r := NewRawGaugeInt()

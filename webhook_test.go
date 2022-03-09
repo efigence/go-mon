@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,13 +28,8 @@ func TestMetricsHandler(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	// Check the status code is what we expect.
-	Convey("Status Code", t, func() {
-		So(rr.Code, ShouldEqual, http.StatusOK)
-	})
-
-	Convey("Output Data", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, "gc.heap_idle")
-	})
+	assert.Equal(t, http.StatusOK, rr.Code, "status code")
+	assert.Contains(t, rr.Body.String(), "gc.heap_idle", "contains data")
 }
 
 func TestStatusHandler(t *testing.T) {
@@ -56,15 +50,11 @@ func TestStatusHandler(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	// initial status should be invalid (because nobody updated it)
-	Convey("Status Code for unknown", t, func() {
-		So(rr.Code, ShouldEqual, http.StatusInternalServerError)
-	})
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "no update should result in invalid data")
 	var s1 Status
 	err = json.Unmarshal(rr.Body.Bytes(), &s1)
-	Convey("Output Data for unknown", t, func() {
-		So(err, ShouldBeNil)
-		So(s1.State, ShouldEqual, StatusUnknown)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, State(StatusUnknown), s1.State, "unknown if there was no status change from init")
 
 	// change status to OK
 	err = GlobalStatus.Update(StatusOk, "service-running")
@@ -78,16 +68,10 @@ func TestStatusHandler(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	var s2 Status
 	err = json.Unmarshal(rr.Body.Bytes(), &s2)
-	Convey("Status Code for OK", t, func() {
-		So(rr.Code, ShouldEqual, http.StatusOK)
-	})
-	Convey("Output Data for OK", t, func() {
-		So(err, ShouldBeNil)
-		So(s2.State, ShouldEqual, StatusOk)
-	})
-	Convey("Output message for OK", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, `service-running`)
-	})
+	assert.Equal(t, http.StatusOK, rr.Code, "status ok after setting it")
+	assert.Nil(t, err)
+	assert.Equal(t, State(StatusOk), s2.State)
+	assert.Contains(t, rr.Body.String(), `service-running`, "json returns service is running")
 
 	// change status to critical
 	GlobalStatus.Update(StatusCritical, "service-failed")
@@ -98,16 +82,10 @@ func TestStatusHandler(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	var s3 Status
 	err = json.Unmarshal(rr.Body.Bytes(), &s3)
-	Convey("Status Code for OK", t, func() {
-		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-	})
-	Convey("Output Data for OK", t, func() {
-		So(err, ShouldBeNil)
-		So(s3.State, ShouldEqual, StatusCritical)
-	})
-	Convey("Output message for OK", t, func() {
-		So(rr.Body.String(), ShouldContainSubstring, `service-failed`)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code, "unavailable status after service is down")
+	assert.Equal(t, State(StatusCritical), s3.State, "status critical")
+	assert.Contains(t, rr.Body.String(), `service-failed`, "json returns service failed")
 }
 
 func TestHandleHaproxyState_Up(t *testing.T) {
