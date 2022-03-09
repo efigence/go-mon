@@ -2,7 +2,6 @@ package mon
 
 import (
 	"encoding/json"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -12,64 +11,45 @@ import (
 func TestEWMA(t *testing.T) {
 	ewma := NewEWMA(time.Minute, "")
 	errUpd1 := ewma.Update(12)
-	Convey("EWMA Init", t, func() {
-		So(errUpd1, ShouldEqual, nil)
-		So(ewma.Value(), ShouldBeBetweenOrEqual, 11.9, 12)
-	})
+	assert.Nil(t, errUpd1)
+	assert.InDelta(t, 12, ewma.Value(), 0.1)
 	m, err := json.Marshal(ewma)
-	Convey("EWMA serialization", t, func() {
-		So(err, ShouldBeNil)
-		So(string(m), ShouldEqual, `{"type":"G","value":12}`)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, `{"type":"G","value":12}`, string(m), "EWMA serialization")
 	errUpd2 := ewma.Update(-11)
-	Convey("EWMA Update", t, func() {
-		So(errUpd2, ShouldEqual, nil)
-		So(ewma.Value(), ShouldBeLessThan, 12)
-	})
+	assert.Nil(t, errUpd2)
+	assert.Less(t, ewma.Value(), float64(12), "EWMA update")
 
 }
 
 func TestEWMARate(t *testing.T) {
 	ewma := NewEWMARate(time.Minute)
 	errUpd1 := ewma.Update(1)
-	ewma.Update(1)
-	ewma.Update(1)
-	Convey("EWMA Init", t, func() {
-		So(errUpd1, ShouldEqual, nil)
-		So(ewma.Value(), ShouldBeGreaterThan, 0)
-	})
+	assert.Nil(t, ewma.Update(1))
+	assert.Nil(t, ewma.Update(1))
+	assert.Nil(t, errUpd1)
+	assert.Greater(t, ewma.Value(), float64(0))
 	m, err := json.Marshal(ewma)
-	Convey("EWMA serialization", t, func() {
-		So(err, ShouldBeNil)
-		So(string(m), ShouldContainSubstring, `{"type":"G","value":`)
-	})
+	assert.Nil(t, err)
+	assert.Contains(t, string(m), `{"type":"G","value":`, "serialization")
 }
 
 func TestCounter(t *testing.T) {
 	ctr := NewCounter()
-	ctr.Update(123)
-	Convey("Counter init", t, func() {
-		So(ctr.ValueRaw(), ShouldEqual, 123)
-	})
+	assert.Nil(t, ctr.Update(123))
+	assert.EqualValues(t, 123, ctr.ValueRaw(), "counter init")
 	m, err := json.Marshal(ctr)
-	Convey("Counter serialization", t, func() {
-		So(err, ShouldBeNil)
-		So(string(m), ShouldEqual, `{"type":"c","value":123}`)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, string(m), `{"type":"c","value":123}`, "counter serialization")
 	errUpd2 := ctr.Update(-11)
-	Convey("counter update", t, func() {
-		So(errUpd2, ShouldEqual, nil)
-		So(ctr.Value(), ShouldEqual, 112)
-	})
+	assert.Nil(t, errUpd2)
+	assert.EqualValues(t, 112, ctr.Value(), "counter update")
 	// trigger overflow
 	errUpd3 := ctr.Update(5000000000000000000)
+	assert.Nil(t, errUpd3)
 	errUpd4 := ctr.Update(5000000000000000000)
-	Convey("counter wrapover", t, func() {
-		So(errUpd2, ShouldEqual, nil)
-		So(errUpd3, ShouldEqual, nil)
-		So(errUpd4, ShouldEqual, nil)
-		So(ctr.Value(), ShouldEqual, 0)
-	})
+	assert.Nil(t, errUpd4)
+	assert.EqualValues(t, 0, ctr.Value(), "wrapover")
 }
 
 func TestGauge(t *testing.T) {

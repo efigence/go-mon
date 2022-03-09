@@ -14,6 +14,7 @@ const (
 	MetricTypeCounter      = `c` // int64 counter
 	MetricTypeCounterFloat = `C` // float64 counter
 )
+
 // Single metric handler interface
 type Metric interface {
 	Type() string
@@ -47,6 +48,7 @@ func Int64OrError(value interface{}) (int64, error) {
 		return 0, fmt.Errorf("Got type %T, expected int64 or any smaller one that fits", value)
 	}
 }
+
 // Return float64 or conversion error
 func Float64OrError(value interface{}) (float64, error) {
 	switch v := value.(type) {
@@ -93,10 +95,10 @@ type StatBackendFloat interface {
 
 // API-compatible JSON output structure
 type JSONOut struct {
-	Type  string      `json:"type"`
-	Unit  string      `json:"unit,omitempty"`
-	Invalid bool      `json:"invalid,omitempty"`
-	Value interface{} `json:"value"`
+	Type    string      `json:"type"`
+	Unit    string      `json:"unit,omitempty"`
+	Invalid bool        `json:"invalid,omitempty"`
+	Value   interface{} `json:"value"`
 }
 
 // raw float metric with no backend
@@ -136,9 +138,9 @@ func (f *MetricFloat) MarshalJSON() ([]byte, error) {
 	if math.IsNaN(f.value) {
 		return json.Marshal(
 			JSONOut{
-				Type:  f.metricType,
+				Type:    f.metricType,
 				Invalid: true,
-				Unit:  f.unit,
+				Unit:    f.unit,
 			})
 	}
 	return json.Marshal(
@@ -173,7 +175,7 @@ func (f *MetricInt) Update(value interface{}) (err error) {
 	v, err := Int64OrError(value)
 	if err == nil {
 		// ignored on purpose; if 2 writes happen at same time there is no "right" answer whether to repeat or not
-		atomic.CompareAndSwapInt64(&f.value,f.value,v)
+		atomic.CompareAndSwapInt64(&f.value, f.value, v)
 	}
 	return err
 }
@@ -263,8 +265,8 @@ func (f *MetricFloatBackend) MarshalJSON() ([]byte, error) {
 	// returning number is only option, or else Go (or other strict deserializers) will crap out on ingestion
 	if math.IsNaN(v) {
 		return json.Marshal(JSONOut{
-			Type:  f.metricType,
-			Unit:  f.unit,
+			Type:    f.metricType,
+			Unit:    f.unit,
 			Invalid: true,
 		})
 	}
