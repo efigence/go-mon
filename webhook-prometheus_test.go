@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandlePrometheus(t *testing.T) {
-	metric, err := GlobalRegistry.RegisterOrGet("promtest", NewGauge("cake"))
+	metric, err := GlobalRegistry.RegisterOrGet("promtest-name.list", NewGauge("cake"))
 	require.NoError(t, err)
 	metric.Update(10.001)
 
@@ -31,8 +31,8 @@ func TestHandlePrometheus(t *testing.T) {
 
 	// Check the status code is what we expect.
 	assert.Equal(t, http.StatusOK, rr.Code, "status code")
-	assert.Contains(t, rr.Body.String(), "# TYPE promtest gauge\n")
-	assert.Contains(t, rr.Body.String(), "# UNIT promtest cake\n")
-	assert.Contains(t, rr.Body.String(), "promtest 10.")
+	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name:list gauge\n")
+	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name:list cake\n")
+	assert.Contains(t, rr.Body.String(), "promtest_name:list 10.")
 
 }
