@@ -1,10 +1,10 @@
 package mon
 
 import (
-	"os"
-	"net"
-	"strings"
 	"math"
+	"net"
+	"os"
+	"strings"
 )
 
 func getFQDN() string {
@@ -43,6 +43,7 @@ func getFQDN() string {
 	}
 	return hostname
 }
+
 // Wraps unsigned 64 bit counter to 64 signed one, on zero
 func WrapUint64Counter(i uint64) (o int64) {
 	if i <= math.MaxInt64 {

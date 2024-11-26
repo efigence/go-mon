@@ -1,7 +1,5 @@
 package mon
 
-import ()
-
 // NewRawCounter return raw (no backend) counter.
 func NewRawCounter(unit ...string) Metric {
 	u := ""

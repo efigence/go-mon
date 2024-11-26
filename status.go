@@ -81,7 +81,7 @@ func newStatus(name string, updateCh chan bool, p ...string) *Status {
 		s.updSend = &updateCh
 	}
 	go func() {
-		for _ = range s.updRecv {
+		for range s.updRecv {
 			msg := s.summaryMessage(&s.Components)
 			state := s.summaryState(&s.Components)
 			s.Lock()

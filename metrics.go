@@ -19,7 +19,6 @@ func (e *ewmaBackend) Value() float64 {
 
 // New exponentally weighted moving average metric
 // halflife is half-life of stat decay
-//
 func NewEWMA(halflife time.Duration, unit ...string) Metric {
 	metric := &MetricFloatBackend{
 		metricType: MetricTypeGauge,
@@ -47,7 +46,6 @@ func (e *ewmaRateBackend) Value() float64 {
 
 // New exponentally weighted moving average event rate counter
 // call Update(value is ignored) every time an event happens to get rate of the event
-//
 func NewEWMARate(halflife time.Duration, unit ...string) Metric {
 	metric := &MetricFloatBackend{
 		metricType: MetricTypeGauge,

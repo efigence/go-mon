@@ -11,17 +11,17 @@ type Registry struct {
 	Metrics  map[string]Metric `json:"metrics"`
 	Instance string            `json:"instance"`
 	Interval float64           `json:"interval"`
-	FQDN  string               `json:"fqdn"`
-	Ts    time.Time            `json:"ts,omitempty"`
+	FQDN     string            `json:"fqdn"`
+	Ts       time.Time         `json:"ts,omitempty"`
 	sync.Mutex
 }
 
-func NewRegistry (fqdn string, instance string, interval float64) (*Registry, error) {
+func NewRegistry(fqdn string, instance string, interval float64) (*Registry, error) {
 	return &Registry{
-		FQDN: fqdn,
+		FQDN:     fqdn,
 		Instance: instance,
 		Interval: interval,
-		Metrics: make(map[string]Metric),
+		Metrics:  make(map[string]Metric),
 	}, nil
 }
 
@@ -35,13 +35,13 @@ func (r *Registry) GetMetric(name string) (Metric, error) {
 
 // Returns a shallow copy of registry with current timestamp.
 // Should be used as source for any serializer
-func (r *Registry) GetRegistry() (*Registry) {
+func (r *Registry) GetRegistry() *Registry {
 	r.Lock()
 	clone := Registry{
 		FQDN:     r.FQDN,
 		Instance: r.Instance,
 		Interval: r.Interval,
-		Metrics: make(map[string]Metric),
+		Metrics:  make(map[string]Metric),
 	}
 	for k, v := range r.Metrics {
 		clone.Metrics[k] = v
@@ -50,6 +50,7 @@ func (r *Registry) GetRegistry() (*Registry) {
 	r.Unlock()
 	return &clone
 }
+
 // Set instance name returned by registry during marshalling
 func (r *Registry) SetInstance(name string) {
 	r.Lock()
@@ -77,8 +78,6 @@ func (r *Registry) UpdateTs() {
 	r.Ts = time.Now()
 	r.Unlock()
 }
-
-
 
 // Register() a given metric or return error if name is already used
 func (r *Registry) Register(name string, metric Metric) (Metric, error) {
@@ -113,8 +112,8 @@ func (r *Registry) RegisterOrGet(name string, metric Metric) (Metric, error) {
 
 // MustRegister() does same as Register() except it panic()s if metric already exists.
 // It is mostly intended to be used for top of the package, package-scoped metrics like
-//  var request_rate =  mon.GlobalRegistry.Register("backend.mysql.qps",mon.NewEWMARate(time.Duration(time.Minute)))
 //
+//	var request_rate =  mon.GlobalRegistry.Register("backend.mysql.qps",mon.NewEWMARate(time.Duration(time.Minute)))
 func (r *Registry) MustRegister(name string, metric Metric) Metric {
 	r.Lock()
 	defer r.Unlock()
@@ -124,26 +123,27 @@ func (r *Registry) MustRegister(name string, metric Metric) Metric {
 	r.Metrics[name] = metric
 	return metric
 }
+
 // Register GC and memory stats under 'gc.'
 // will noop if called more than one
 //
 // Probing occurs 3x the interval and some stats (like memory
-
 
 var globalGcStatsRegistered bool
 
 // GcStats configuration. Interval is time between probes, average turns on EWMA on most stats with 5x interval as half-life
 type GcStatsConfig struct {
 	Interval time.Duration
-	Average bool
+	Average  bool
 }
 
 func RegisterGcStats(c ...GcStatsConfig) {
-	if globalGcStatsRegistered {return}
+	if globalGcStatsRegistered {
+		return
+	}
 	interval := time.Second * 10
 	EWMAHalfLife := interval * 5
 	average := false
-
 
 	if len(c) > 0 {
 		if c[0].Interval > 0 {

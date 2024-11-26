@@ -1,9 +1,9 @@
 package mon
 
 import (
-	"path/filepath"
-	"os"
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
 // Global registry, will use app's executable name as instance and try best to guess FQDN
@@ -20,18 +20,17 @@ var GlobalRegistry *Registry
 //
 //  note that staleness detection is not handled by the package so any test should be ran in gorouting and with timeouts
 
-
 var GlobalStatus *Status
+
 func init() {
 	_, name := filepath.Split(os.Args[0])
 	fqdn := getFQDN()
-	r, err := NewRegistry(fqdn,name,10)
+	r, err := NewRegistry(fqdn, name, 10)
 	if err != nil {
-		panic(fmt.Sprintf("could not create global registry: %s",err))
+		panic(fmt.Sprintf("could not create global registry: %s", err))
 	}
 	GlobalRegistry = r
 	GlobalStatus = NewStatus(name)
 	GlobalStatus.DisplayName = name
-	GlobalStatus.FQDN=fqdn
+	GlobalStatus.FQDN = fqdn
 }
-
