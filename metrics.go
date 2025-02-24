@@ -2,7 +2,6 @@ package mon
 
 import (
 	"github.com/efigence/go-libs/ewma"
-	"sync/atomic"
 	"time"
 )
 
@@ -57,28 +56,4 @@ func NewEWMARate(halflife time.Duration, unit ...string) Metric {
 		metric.unit = unit[0]
 	}
 	return metric
-}
-
-type counterBackend struct {
-	counter       int64
-	canBeNegative bool
-}
-
-func (c *counterBackend) Update(u int64) {
-	atomic.AddInt64(&c.counter, u)
-	// FIXME probably should add remainder from overflow instead of zeroing it
-	if !c.canBeNegative && c.counter < 0 {
-		ctr := c.counter
-		for ctr < 0 {
-			atomic.CompareAndSwapInt64(&c.counter, c.counter, 0)
-			ctr = c.counter
-		}
-	}
-}
-func (c *counterBackend) Value() int64 {
-	ctr := atomic.LoadInt64(&c.counter)
-	if !c.canBeNegative && ctr < 0 {
-		return 0
-	}
-	return ctr
 }

@@ -17,6 +17,17 @@ func TestRegisterGcStats(t *testing.T) {
 	assert.Contains(t, string(m), `"gc.count"`)
 }
 
+func TestRegistry(t *testing.T) {
+	GlobalRegistry.SetFQDN("asd.example.com")
+	GlobalRegistry.SetInterval(10.0)
+	GlobalRegistry.SetInstance("testInstance")
+	assert.Equal(t, 10.0, GlobalRegistry.Interval)
+	assert.Equal(t, "testInstance", GlobalRegistry.Instance)
+	assert.Equal(t, "asd.example.com", GlobalRegistry.FQDN)
+	_, err := GlobalRegistry.GetMetric("asd")
+	assert.Error(t, err)
+}
+
 func BenchmarkRegistry_GetRegistry(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		GlobalRegistry.GetRegistry()

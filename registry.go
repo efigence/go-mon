@@ -52,7 +52,7 @@ func (r *Registry) GetRegistry() *Registry {
 	for k, v := range r.Metrics {
 		clone.Metrics[k] = v
 	}
-	clone.Ts = time.Now()
+	clone.UpdateTs()
 	r.Unlock()
 	return &clone
 }
