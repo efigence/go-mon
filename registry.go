@@ -153,7 +153,7 @@ func RegisterGcStats(c ...GcStatsConfig) {
 	}
 
 	NewGaugeFunc := func(unit ...string) Metric {
-		return NewRawGauge(unit...)
+		return NewGauge(unit...)
 	}
 	if average {
 		NewGaugeFunc = func(unit ...string) Metric {
@@ -161,8 +161,8 @@ func RegisterGcStats(c ...GcStatsConfig) {
 		}
 	}
 	gcCount := GlobalRegistry.MustRegister(`gc.count`, NewRawCounter())
-	gcPause := GlobalRegistry.MustRegister(`gc.pause`, NewRawCounterFloat("ns"))
-	gcCPUPercentage := GlobalRegistry.MustRegister(`gc.cpu`, NewRawGauge("percent"))
+	gcPause := GlobalRegistry.MustRegister(`gc.pause`, NewRawCounter("ns"))
+	gcCPUPercentage := GlobalRegistry.MustRegister(`gc.cpu`, NewGauge("percent"))
 	mallocCount := GlobalRegistry.MustRegister(`gc.malloc`, NewRawCounter())
 	freeCount := GlobalRegistry.MustRegister(`gc.free`, NewRawCounter())
 	heapAlloc := GlobalRegistry.MustRegister(`gc.heap_alloc`, NewGaugeFunc("bytes"))
@@ -176,18 +176,18 @@ func RegisterGcStats(c ...GcStatsConfig) {
 		stats := &runtime.MemStats{}
 		for {
 			runtime.ReadMemStats(stats)
-			gcCount.Update(stats.NumGC)
-			gcPause.Update(WrapUint64Counter(stats.PauseTotalNs))
+			gcCount.Update(float64(stats.NumGC))
+			gcPause.Update(float64(stats.PauseTotalNs))
 			gcCPUPercentage.Update(stats.GCCPUFraction * 100)
-			mallocCount.Update(WrapUint64Counter(stats.Mallocs))
-			freeCount.Update(WrapUint64Counter(stats.Frees))
-			heapAlloc.Update(stats.HeapAlloc)
-			heapIdle.Update(stats.HeapIdle)
-			heapInuse.Update(stats.HeapInuse)
-			heapObj.Update(stats.HeapObjects)
-			stackInuse.Update(stats.StackInuse)
-			mspanInuse.Update(stats.MSpanInuse)
-			mcacheInuse.Update(stats.MCacheInuse)
+			mallocCount.Update(float64(stats.Mallocs))
+			freeCount.Update(float64(stats.Frees))
+			heapAlloc.Update(float64(stats.HeapAlloc))
+			heapIdle.Update(float64(stats.HeapIdle))
+			heapInuse.Update(float64(stats.HeapInuse))
+			heapObj.Update(float64(stats.HeapObjects))
+			stackInuse.Update(float64(stats.StackInuse))
+			mspanInuse.Update(float64(stats.MSpanInuse))
+			mcacheInuse.Update(float64(stats.MCacheInuse))
 			time.Sleep(interval)
 		}
 	}()
