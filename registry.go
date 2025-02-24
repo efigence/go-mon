@@ -1,18 +1,22 @@
 package mon
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"runtime"
 	"sync"
 	"time"
 )
 
+var emptyGob = gobTag(GobTag{map[string]string{}})
+
 type Registry struct {
-	Metrics  map[string]Metric `json:"metrics"`
-	Instance string            `json:"instance"`
-	Interval float64           `json:"interval"`
-	FQDN     string            `json:"fqdn"`
-	Ts       time.Time         `json:"ts,omitempty"`
+	Metrics  map[string]map[string]Metric `json:"metrics"`
+	Instance string                       `json:"instance"`
+	Interval float64                      `json:"interval"`
+	FQDN     string                       `json:"fqdn"`
+	Ts       time.Time                    `json:"ts,omitempty"`
 	sync.Mutex
 }
 
@@ -21,13 +25,50 @@ func NewRegistry(fqdn string, instance string, interval float64) (*Registry, err
 		FQDN:     fqdn,
 		Instance: instance,
 		Interval: interval,
-		Metrics:  make(map[string]Metric),
+		Metrics:  make(map[string]map[string]Metric),
 	}, nil
 }
 
-func (r *Registry) GetMetric(name string) (Metric, error) {
+type GobTag struct {
+	T map[string]string
+}
+
+func mapToGobTag(v ...map[string]string) GobTag {
+	d := map[string]string{}
+	for _, m := range v {
+		for k, v := range m {
+			d[k] = v
+		}
+	}
+	return GobTag{T: d}
+}
+
+func gobTag(g GobTag) (data []byte) {
+	var b bytes.Buffer
+	err := gob.NewEncoder(&b).Encode(&g)
+	if err != nil {
+		panic(err)
+	}
+	return b.Bytes()
+}
+func gobUntag(data []byte) (g GobTag) {
+	b := bytes.NewReader(data)
+	err := gob.NewDecoder(b).Decode(&g)
+	if err != nil {
+		panic(err)
+	}
+	return g
+}
+
+func (r *Registry) GetMetric(name string, tags ...map[string]string) (Metric, error) {
+	gob := gobTag(mapToGobTag(tags...))
+
 	if r, ok := r.Metrics[name]; ok {
-		return r, nil
+		if r, ok := r[string(gob)]; ok {
+			return r, nil
+		} else {
+			return nil, &ErrMetricNotFound{Metric: name}
+		}
 	} else {
 		return nil, &ErrMetricNotFound{Metric: name}
 	}
@@ -41,7 +82,7 @@ func (r *Registry) GetRegistry() *Registry {
 		FQDN:     r.FQDN,
 		Instance: r.Instance,
 		Interval: r.Interval,
-		Metrics:  make(map[string]Metric),
+		Metrics:  make(map[string]map[string]Metric),
 	}
 	for k, v := range r.Metrics {
 		clone.Metrics[k] = v
@@ -80,33 +121,43 @@ func (r *Registry) UpdateTs() {
 }
 
 // Register() a given metric or return error if name is already used
-func (r *Registry) Register(name string, metric Metric) (Metric, error) {
+func (r *Registry) Register(name string, metric Metric, tags ...map[string]string) (Metric, error) {
+	gob := gobTag(mapToGobTag(tags...))
 	r.Lock()
 	defer r.Unlock()
-	if r, ok := r.Metrics[name]; ok {
+	if _, ok := r.Metrics[name]; !ok {
+		r.Metrics[name] = make(map[string]Metric, 0)
+	}
+	if r, ok := r.Metrics[name][string(gob)]; ok {
 		return r, &ErrMetricAlreadyRegistered{Metric: name}
 	}
-	r.Metrics[name] = metric
+	r.Metrics[name][string(gob)] = metric
 	return metric, nil
 }
 
 // RegisterOrGet() registers a given metric or resturns already existing one if it is of same type
 // it will err out if type does not match but it does not compare rest of the parameters of the metric so do not use it if you are not 100% sure
 
-func (r *Registry) RegisterOrGet(name string, metric Metric) (Metric, error) {
+func (r *Registry) RegisterOrGet(name string, metric Metric, tags ...map[string]string) (Metric, error) {
+	gob := gobTag(mapToGobTag(tags...))
 	r.Lock()
 	defer r.Unlock()
-	if r, ok := r.Metrics[name]; ok {
-		if r.Type() == metric.Type() {
-			return r, nil
-		}
-		return r, &ErrMetricAlreadyRegisteredWrongType{
-			Metric:        name,
-			OldMetricType: r.Type(),
-			NewMetricType: metric.Type(),
-		}
+	if _, ok := r.Metrics[name]; !ok {
+		r.Metrics[name] = make(map[string]Metric, 0)
 	}
-	r.Metrics[name] = metric
+	if m, ok := r.Metrics[name][string(gob)]; ok {
+		if m.Type() == metric.Type() {
+			return m, nil
+		} else {
+			return m, &ErrMetricAlreadyRegisteredWrongType{
+				Metric:        name,
+				OldMetricType: m.Type(),
+				NewMetricType: metric.Type(),
+			}
+		}
+	} else {
+		r.Metrics[name][string(gob)] = metric
+	}
 	return metric, nil
 }
 
@@ -114,14 +165,12 @@ func (r *Registry) RegisterOrGet(name string, metric Metric) (Metric, error) {
 // It is mostly intended to be used for top of the package, package-scoped metrics like
 //
 //	var request_rate =  mon.GlobalRegistry.Register("backend.mysql.qps",mon.NewEWMARate(time.Duration(time.Minute)))
-func (r *Registry) MustRegister(name string, metric Metric) Metric {
-	r.Lock()
-	defer r.Unlock()
-	if r, ok := r.Metrics[name]; ok {
-		panic(fmt.Sprintf("Metric is already registered: %s : %+v", name, r))
+func (r *Registry) MustRegister(name string, metric Metric, tags ...map[string]string) Metric {
+	m, err := r.Register(name, metric, tags...)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to register metric %s: %s", name, err))
 	}
-	r.Metrics[name] = metric
-	return metric
+	return m
 }
 
 // Register GC and memory stats under 'gc.'

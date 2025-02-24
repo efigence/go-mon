@@ -29,3 +29,13 @@ func BenchmarkMemstat(b *testing.B) {
 		runtime.ReadMemStats(stats)
 	}
 }
+
+func BenchmarkGobtag(b *testing.B) {
+	v := GobTag{T: map[string]string{
+		"a": "b",
+		"c": "d",
+	}}
+	for n := 0; n < b.N; n++ {
+		gobTag(v)
+	}
+}
