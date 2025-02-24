@@ -1,6 +1,8 @@
 package mon
 
 import (
+	"bytes"
+	"encoding/gob"
 	"math"
 	"net"
 	"os"
@@ -51,4 +53,44 @@ func WrapUint64Counter(i uint64) (o int64) {
 	} else {
 		return int64(i) + math.MaxInt64 + 1
 	}
+}
+
+type GobTag struct {
+	T map[string]string
+}
+
+func mapToGobTag(v ...map[string]string) GobTag {
+	d := map[string]string{}
+	for _, m := range v {
+		for k, v := range m {
+			d[k] = promLabelEscapeLabelValue(v)
+		}
+	}
+	return GobTag{T: d}
+}
+
+func gobTag(g GobTag) (data []byte) {
+	var b bytes.Buffer
+	err := gob.NewEncoder(&b).Encode(&g)
+	if err != nil {
+		panic(err)
+	}
+	return b.Bytes()
+}
+func ungobTag(data []byte) (g GobTag) {
+	b := bytes.NewReader(data)
+	err := gob.NewDecoder(b).Decode(&g)
+	if err != nil {
+		panic(err)
+	}
+	return g
+}
+
+var emptyGob = gobTag(GobTag{map[string]string{}})
+
+func promLabelEscapeLabelValue(value string) string {
+	value = strings.ReplaceAll(value, "\\", "\\\\")
+	value = strings.ReplaceAll(value, "\"", "\\\"")
+	value = strings.ReplaceAll(value, "\n", "\\n")
+	return value
 }

@@ -3,8 +3,9 @@ module github.com/efigence/go-mon
 go 1.20
 
 require (
+	github.com/XANi/goneric v1.3.0
 	github.com/efigence/go-libs v0.0.3
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 )
 
 require (

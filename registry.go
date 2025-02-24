@@ -1,15 +1,11 @@
 package mon
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"runtime"
 	"sync"
 	"time"
 )
-
-var emptyGob = gobTag(GobTag{map[string]string{}})
 
 type Registry struct {
 	Metrics  map[string]map[string]Metric `json:"metrics"`
@@ -27,37 +23,6 @@ func NewRegistry(fqdn string, instance string, interval float64) (*Registry, err
 		Interval: interval,
 		Metrics:  make(map[string]map[string]Metric),
 	}, nil
-}
-
-type GobTag struct {
-	T map[string]string
-}
-
-func mapToGobTag(v ...map[string]string) GobTag {
-	d := map[string]string{}
-	for _, m := range v {
-		for k, v := range m {
-			d[k] = v
-		}
-	}
-	return GobTag{T: d}
-}
-
-func gobTag(g GobTag) (data []byte) {
-	var b bytes.Buffer
-	err := gob.NewEncoder(&b).Encode(&g)
-	if err != nil {
-		panic(err)
-	}
-	return b.Bytes()
-}
-func gobUntag(data []byte) (g GobTag) {
-	b := bytes.NewReader(data)
-	err := gob.NewDecoder(b).Decode(&g)
-	if err != nil {
-		panic(err)
-	}
-	return g
 }
 
 func (r *Registry) GetMetric(name string, tags ...map[string]string) (Metric, error) {
