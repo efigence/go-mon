@@ -14,7 +14,7 @@ func TestRegisterGcStats(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Contains(t, string(m), `"instance"`)
-	assert.Contains(t, string(m), `"gc.count"`)
+	assert.Contains(t, string(m), `"go_gc_count"`)
 }
 
 func TestRegistry(t *testing.T) {

@@ -26,17 +26,22 @@ func HandlePrometheus(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlePrometheus(w http.ResponseWriter, req *http.Request, registry *Registry) {
+	emittedHelp := map[string]bool{}
 	for k, m1 := range registry.GetRegistry().Metrics {
 		for k2, metric := range m1 {
 			k = promRepl.Replace(k)
-			fmt.Fprintf(w, "# HELP %s\n", k)
-			if len(metric.Type()) > 0 {
-				fmt.Fprintf(w, "# TYPE %s %s\n", k, prometheusTypes[metric.Type()])
-			}
-			if len(metric.Unit()) > 0 {
-				fmt.Fprintf(w, "# UNIT %s %s\n", k, metric.Unit())
-			}
 			t := ""
+			keyName := k
+			metricType := metric.Type()
+			metricUnit := metric.Unit()
+			if metricUnit != "" {
+				if metricType == MetricTypeCounter || metricType == MetricTypeCounterFloat {
+					keyName = keyName + "_" + metricUnit + "_total"
+				} else {
+					keyName = keyName + "_" + metricUnit
+				}
+			}
+
 			if k2 != string(emptyGob) {
 				tags := ungobTag([]byte(k2))
 				tagSlice := goneric.MapToSlice(
@@ -46,7 +51,19 @@ func handlePrometheus(w http.ResponseWriter, req *http.Request, registry *Regist
 					tags.T)
 				t = "{" + strings.Join(tagSlice, ",")
 			}
-			fmt.Fprintf(w, "%s%s %f\n", k, t, metric.Value())
+			if _, ok := emittedHelp[keyName]; !ok {
+				fmt.Fprintf(w, "# HELP %s\n", keyName)
+				if len(metric.Type()) > 0 {
+					fmt.Fprintf(w, "# TYPE %s %s\n", keyName, prometheusTypes[metric.Type()])
+				}
+				if len(metric.Unit()) > 0 {
+					fmt.Fprintf(w, "# UNIT %s %s\n", keyName, metric.Unit())
+				}
+			} else {
+				emittedHelp[keyName] = true
+			}
+
+			fmt.Fprintf(w, "%s%s %f\n", keyName, t, metric.Value())
 			fmt.Fprintf(w, "\n")
 
 		}

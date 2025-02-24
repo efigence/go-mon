@@ -29,7 +29,7 @@ func TestMetricsHandler(t *testing.T) {
 
 	// Check the status code is what we expect.
 	assert.Equal(t, http.StatusOK, rr.Code, "status code")
-	assert.Contains(t, rr.Body.String(), "gc.heap_idle", "contains data")
+	assert.Contains(t, rr.Body.String(), "go_gc_heap_idle", "contains data")
 }
 
 func TestStatusHandler(t *testing.T) {

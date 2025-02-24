@@ -174,18 +174,18 @@ func RegisterGcStats(c ...GcStatsConfig) {
 			return NewEWMA(EWMAHalfLife, unit...)
 		}
 	}
-	gcCount := GlobalRegistry.MustRegister(`gc.count`, NewRawCounter())
-	gcPause := GlobalRegistry.MustRegister(`gc.pause`, NewRawCounter("ns"))
-	gcCPUPercentage := GlobalRegistry.MustRegister(`gc.cpu`, NewGauge("percent"))
-	mallocCount := GlobalRegistry.MustRegister(`gc.malloc`, NewRawCounter())
-	freeCount := GlobalRegistry.MustRegister(`gc.free`, NewRawCounter())
-	heapAlloc := GlobalRegistry.MustRegister(`gc.heap_alloc`, NewGaugeFunc("bytes"))
-	heapIdle := GlobalRegistry.MustRegister(`gc.heap_idle`, NewGaugeFunc("bytes"))
-	heapInuse := GlobalRegistry.MustRegister(`gc.heap_inuse`, NewGaugeFunc("bytes"))
-	heapObj := GlobalRegistry.MustRegister(`gc.heap_obj`, NewGaugeFunc())
-	stackInuse := GlobalRegistry.MustRegister(`gc.stack_inuse`, NewGaugeFunc("bytes"))
-	mspanInuse := GlobalRegistry.MustRegister(`gc.mspan_inuse`, NewGaugeFunc("bytes"))
-	mcacheInuse := GlobalRegistry.MustRegister(`gc.mcache_inuse`, NewGaugeFunc("bytes"))
+	gcCount := GlobalRegistry.MustRegister(`go_gc_count`, NewCounter())
+	gcPause := GlobalRegistry.MustRegister(`go_gc_pause`, NewRawCounter("ns"))
+	gcCPUPercentage := GlobalRegistry.MustRegister(`go_gc_cpu`, NewGauge("percent"))
+	mallocCount := GlobalRegistry.MustRegister(`go_gc_malloc_count`, NewRawCounter())
+	freeCount := GlobalRegistry.MustRegister(`go_gc_free`, NewRawCounter())
+	heapAlloc := GlobalRegistry.MustRegister(`go_gc_heap_alloc`, NewGaugeFunc("bytes"))
+	heapIdle := GlobalRegistry.MustRegister(`go_gc_heap_idle`, NewGaugeFunc("bytes"))
+	heapInuse := GlobalRegistry.MustRegister(`go_gc_heap_inuse`, NewGaugeFunc("bytes"))
+	heapObj := GlobalRegistry.MustRegister(`go_gc_heap_obj`, NewGaugeFunc())
+	stackInuse := GlobalRegistry.MustRegister(`go_gc_stack_inuse`, NewGaugeFunc("bytes"))
+	mspanInuse := GlobalRegistry.MustRegister(`go_gc_mspan_inuse`, NewGaugeFunc("bytes"))
+	mcacheInuse := GlobalRegistry.MustRegister(`go_gc_mcache_inuse`, NewGaugeFunc("bytes"))
 	go func() {
 		stats := &runtime.MemStats{}
 		for {

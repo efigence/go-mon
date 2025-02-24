@@ -31,9 +31,9 @@ func TestHandlePrometheus(t *testing.T) {
 
 	// Check the status code is what we expect.
 	assert.Equal(t, http.StatusOK, rr.Code, "status code")
-	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name:list gauge\n")
-	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name:list cake\n")
-	assert.Contains(t, rr.Body.String(), "promtest_name:list 10.")
+	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name:list_cake gauge\n")
+	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name:list_cake cake\n")
+	assert.Contains(t, rr.Body.String(), "promtest_name:list_cake 10.")
 
 }
 func TestHandlePrometheusTags(t *testing.T) {
@@ -63,8 +63,8 @@ func TestHandlePrometheusTags(t *testing.T) {
 
 	// Check the status code is what we expect.
 	assert.Equal(t, http.StatusOK, rr.Code, "status code")
-	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name_list gauge\n")
-	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name_list cake\n")
+	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name_list_cake gauge\n")
+	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name_list_cake cake\n")
 	assert.Contains(t, rr.Body.String(), `promtest_name_list`)
 	assert.Contains(t, rr.Body.String(), `k1="v1"`)
 	assert.Contains(t, rr.Body.String(), `k2="v2"`)
