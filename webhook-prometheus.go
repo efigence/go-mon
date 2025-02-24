@@ -49,22 +49,20 @@ func handlePrometheus(w http.ResponseWriter, req *http.Request, registry *Regist
 						return k + "=" + `"` + v + `"`
 					},
 					tags.T)
-				t = "{" + strings.Join(tagSlice, ",")
+				t = "{" + strings.Join(tagSlice, ",") + "}"
 			}
 			if _, ok := emittedHelp[keyName]; !ok {
-				fmt.Fprintf(w, "# HELP %s\n", keyName)
+				fmt.Fprintf(w, "\n# HELP %s\n", keyName)
 				if len(metric.Type()) > 0 {
 					fmt.Fprintf(w, "# TYPE %s %s\n", keyName, prometheusTypes[metric.Type()])
 				}
 				if len(metric.Unit()) > 0 {
 					fmt.Fprintf(w, "# UNIT %s %s\n", keyName, metric.Unit())
 				}
-			} else {
 				emittedHelp[keyName] = true
 			}
 
 			fmt.Fprintf(w, "%s%s %f\n", keyName, t, metric.Value())
-			fmt.Fprintf(w, "\n")
 
 		}
 	}
