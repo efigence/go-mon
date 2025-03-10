@@ -26,6 +26,7 @@ func (m *MetricRawCounter) Unit() string {
 }
 func (m *MetricRawCounter) Value() float64 {
 	// precison around 1e25 is above 0.1 so we reset counter back to 0
+	// technically integer gapless range is up to 2^53 (~ 9E15) but I want some leeway here
 	if m.value > 1e15 || m.value < (-1e15) {
 		m.lock.Lock()
 		m.value = 0

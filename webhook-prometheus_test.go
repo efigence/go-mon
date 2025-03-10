@@ -39,7 +39,7 @@ func TestHandlePrometheus(t *testing.T) {
 func TestHandlePrometheusTags(t *testing.T) {
 	r, err := NewRegistry("", "", 10)
 	require.NoError(t, err)
-	metric, err := r.RegisterOrGet("promtest-name_list", NewGauge("cake"), map[string]string{"k1": "v1", "k2": "v2"})
+	metric, err := r.RegisterOrGet("promtest-name_list", NewGauge("cake"), map[string]string{"k2": "v2", "k1": "v1"})
 	require.NoError(t, err)
 	metric.Update(10.001)
 
@@ -65,9 +65,6 @@ func TestHandlePrometheusTags(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code, "status code")
 	assert.Contains(t, rr.Body.String(), "# TYPE promtest_name_list_cake gauge\n")
 	assert.Contains(t, rr.Body.String(), "# UNIT promtest_name_list_cake cake\n")
-	assert.Contains(t, rr.Body.String(), `promtest_name_list`)
-	assert.Contains(t, rr.Body.String(), `k1="v1"`)
-	assert.Contains(t, rr.Body.String(), `k2="v2"`)
-	assert.Contains(t, rr.Body.String(), ` 10.`)
+	assert.Contains(t, rr.Body.String(), `promtest_name_list_cake{k1="v1",k2="v2"} 10.`)
 
 }

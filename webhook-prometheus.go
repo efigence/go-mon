@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/XANi/goneric"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -49,6 +50,10 @@ func handlePrometheus(w http.ResponseWriter, req *http.Request, registry *Regist
 						return k + "=" + `"` + v + `"`
 					},
 					tags.T)
+				// prometheus guys decided sorting order is important part of metric:
+				//     Prometheus internally treats label order as part of the time series' unique identifier. Even if the same labels are present but in different orders, they are considered distinct.
+				// so sort it to avoid this moronic idiocy
+				sort.Strings(tagSlice)
 				t = "{" + strings.Join(tagSlice, ",") + "}"
 			}
 			if _, ok := emittedHelp[keyName]; !ok {
